@@ -1,1 +1,3 @@
 rpi-reporter-mqtt2ha/inventory/hosts.yml
+rpi-reporter-mqtt2ha/templates/020_daemon.j2
+rpi-reporter-mqtt2ha/templates/config.ini.j2
