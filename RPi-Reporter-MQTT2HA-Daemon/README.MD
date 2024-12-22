@@ -24,4 +24,4 @@ Or you could replace rpi-{{ ansible_hostname }} with a custom one.
 
 ctrl and o to save then ctrl x to exit
 
-ansible-playbook main.yml
+ansible-playbook instal.yml
