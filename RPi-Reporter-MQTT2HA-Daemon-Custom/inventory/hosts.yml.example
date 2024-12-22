@@ -1,0 +1,16 @@
+rpi:
+  children:
+    GROUP-NAME-01:
+      hosts:
+        Host-01:  # The colon : must be present at the end of each host
+        10.10.10.100:
+        Host-03:
+      vars:
+        ansible_user: "pi"
+        ansible_ssh_private_key_file: "~/.ssh/pi-username-key"
+    GROUP-NAME-02:
+      hosts:
+        Host-04:
+      vars:
+        ansible_user: "pi2-username"
+        ansible_ssh_private_key_file: "~/.ssh/pi2-username-key"
