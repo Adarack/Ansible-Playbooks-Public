@@ -22,6 +22,6 @@ edit as required
 Ansible will fill in sensor_name = rpi-{{ ansible_hostname }} with the Pi's host name.
 Or you could replace rpi-{{ ansible_hostname }} with a custom one.
 
-ctrl and o to save then ctrl x to exit
+ctrl O to save then ctrl X to exit
 
-ansible-playbook instal.yml
+ansible-playbook install.yml
