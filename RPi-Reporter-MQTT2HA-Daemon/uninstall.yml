@@ -1,0 +1,30 @@
+- name: Uninstall RPi-Reporter-MQTT2HA-Daemon
+  hosts: "rpi"
+  become: true
+  tasks:
+    - name: Disable isp-rpi-reporter.service
+      become: true
+      ansible.builtin.systemd_service:
+        name: isp-rpi-reporter.service
+        enabled: false
+        state: stopped
+
+    - name: Remove file /etc/systemd/system/isp-rpi-reporter.service
+      ansible.builtin.file:
+        path: /etc/systemd/system/isp-rpi-reporter.service
+        state: absent
+
+    - name: Remove file /etc/sudoers.d/020_daemon
+      ansible.builtin.file:
+        path: /etc/sudoers.d/020_daemon
+        state: absent
+
+    - name: Recursively remove /opt/RPi-Reporter-MQTT2HA-Daemon
+      ansible.builtin.file:
+        path: /opt/RPi-Reporter-MQTT2HA-Daemon
+        state: absent
+
+    - name: Reboot
+      become: true
+      ansible.builtin.reboot:
+        reboot_timeout: 300

@@ -6,7 +6,7 @@
       become: true
       ansible.builtin.apt:
         update_cache: true
-        upgrade: 'full'
+        upgrade: 'safe'
 
     - name: Install packages
       become: true
@@ -21,6 +21,7 @@
           - curl
           - software-properties-common
           - virtualenv
+          - smartmontools
           - python3-setuptools
           - python3-pip
           - python3-venv
@@ -46,12 +47,33 @@
         name: daemon
         groups: video
 
-    - name: Git Clone RPi-Reporter-MQTT2HA-Daemon
-      ansible.builtin.git:
-        repo: https://github.com/ironsheep/RPi-Reporter-MQTT2HA-Daemon.git
-        dest: /opt/RPi-Reporter-MQTT2HA-Daemon
-        single_branch: true
-        version: v1.8.5
+    - name: Copy over /etc/sudoers.d/020_daemon
+      become: true
+      ansible.builtin.template:
+        src: "020_daemon.j2"
+        dest: /etc/sudoers.d/020_daemon
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -csf %s  # uses visudo to validate the sudo file
+
+    - name: Copy over /opt/RPi-Reporter-MQTT2HA-Daemon
+      become: true
+      ansible.builtin.copy:
+        src: RPi-Reporter-MQTT2HA-Daemon-pr149-pr154/ # note the '/' <-- !!!
+        dest: /opt/RPi-Reporter-MQTT2HA-Daemon/
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy over the RPi-Reporter-MQTT2HA-Daemon config
+      become: true
+      ansible.builtin.template:
+        src: "config.ini.j2"
+        dest: /opt/RPi-Reporter-MQTT2HA-Daemon/config.ini
+        owner: root
+        group: daemon
+        mode: "0640"
 
     - name: Change ISP-RPi-mqtt-daemon.py ownership
       ansible.builtin.file:
@@ -78,15 +100,6 @@
       ansible.builtin.command:
         cmd: .venv/bin/pip3 install -r requirements.txt
         chdir: /opt/RPi-Reporter-MQTT2HA-Daemon
-
-    - name: Copy over the RPi-Reporter-MQTT2HA-Daemon config
-      become: true
-      ansible.builtin.template:
-        src: "config.ini.j2"
-        dest: /opt/RPi-Reporter-MQTT2HA-Daemon/config.ini
-        owner: root
-        group: daemon
-        mode: "0640"
 
     - name: Copy over the isp-rpi-reporter.service
       become: true
