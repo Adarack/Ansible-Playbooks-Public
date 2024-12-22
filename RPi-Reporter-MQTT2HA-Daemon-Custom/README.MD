@@ -19,10 +19,10 @@ Configure the hosts file for your devices.
 
 ctrl O to save then ctrl X to exit
 ```
-cp /templates/config.ini.j2.example /templates/config.ini.j2
+cp /templates/config.ini.example /templates/config.ini
 ```
 ```
-nano /templates/config.ini.j2
+nano /templates/config.ini
 ```
 edit as required
 
@@ -30,7 +30,7 @@ Ansible will fill in sensor_name = rpi-{{ ansible_hostname }} with the Pi's host
 
 Or you could replace rpi-{{ ansible_hostname }} with a custom one.
 
-ctrl and o to save then ctrl x to exit
+ctrl O to save then ctrlXx to exit
 
 Next you need to figure out how to edit the smartctl-helper bash script.
 
