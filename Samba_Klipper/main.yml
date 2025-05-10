@@ -1,0 +1,53 @@
+- name: Setup samba for Klipper Printers
+  hosts: "klipper"
+  become: true
+  tasks:
+    - name: Install samba
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - samba
+        state: latest
+
+    - name: Ensure group smbusers exists
+      ansible.builtin.group:
+        name: smbusers
+        state: present
+
+    - name: Configure user jason
+      become: true
+      ansible.builtin.user:
+        append: true
+        name: jason
+        groups: smbusers
+        create_home: true
+
+    - name: Configure user pi
+      become: true
+      ansible.builtin.user:
+        append: true
+        name: pi
+        groups: smbusers
+        create_home: true
+
+    - name: Copy over '/etc/samba/smb.conf'
+      become: true
+      ansible.builtin.template:
+        src: "smb.conf.j2"
+        dest: /etc/samba/smb.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Restart smbd
+      become: true
+      ansible.builtin.systemd_service:
+        name: smbd
+        enabled: true
+        state: restarted
+        daemon_reload: true
+
+    # - name: UFW Allow samba
+    #   community.general.ufw:
+    #     rule: allow
+    #     name: smdb

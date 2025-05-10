@@ -1,0 +1,31 @@
+- name: Set timezone and configure timesyncd
+  hosts: "rpi"
+  become: true
+  tasks:
+    - name: Check current Timezone
+      ansible.builtin.command: timedatectl show --property=Timezone America/New_York
+      register: timezone_output
+      changed_when: false
+
+    - name: Set timezone
+      ansible.builtin.command: timedatectl set-timezone America/New_York
+      when: timezone_output.stdout != timezone
+      changed_when: true
+
+    - name: Make sure timesyncd is stopped
+      ansible.builtin.systemd_service:
+        name: systemd-timesyncd.service
+        state: stopped
+
+    - name: Copy over the timesyncd config
+      ansible.builtin.template:
+        src: 'timesyncd.conf.j2' # This file is in the templates directory. Edit as needed.
+        dest: /etc/systemd/timesyncd.conf
+        owner: root
+        group: root
+        mode: "644"
+
+    - name: Make sure timesyncd is started
+      ansible.builtin.systemd_service:
+        name: systemd-timesyncd.service
+        state: started
