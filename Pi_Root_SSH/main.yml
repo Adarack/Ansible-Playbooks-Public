@@ -1,0 +1,21 @@
+- name: Copy sshd_conf and root_key to Pi
+  hosts: "newpi"
+  become: true
+  tasks:
+    - name: Copy over the sshd_conf
+      become: true
+      ansible.builtin.template:
+        src: "sshd_config_debian.j2" # This file is in the templates directory
+        dest: /etc/ssh/sshd_config
+        owner: root
+        group: root
+        mode: "644"
+
+    - name: Copy over the sshkey
+      become: true
+      ansible.builtin.template:
+        src: "your_public_key.pub"  # This file is in the templates directory
+        dest: /root/.ssh/authorized_keys
+        owner: root
+        group: root
+        mode: "644"

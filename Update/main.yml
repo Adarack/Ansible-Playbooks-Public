@@ -1,0 +1,22 @@
+- name: Update apt upgrade
+  hosts: "linux"
+  become: true
+  tasks:
+    - name: Check for and install updates
+      when: ansible_facts['os_family'] == "Debian"
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: 'full'
+
+    - name: Clean Autoremove and Purge old Packages
+      when: ansible_facts['os_family'] == "Debian"
+      ansible.builtin.apt:
+        clean: true
+        autoremove: true
+        purge: true
+
+    - name: Update PiHole
+      when: pihole is defined
+      become: true
+      ansible.builtin.command: pihole -up
+      # ansible.builtin.shell: pihole -up

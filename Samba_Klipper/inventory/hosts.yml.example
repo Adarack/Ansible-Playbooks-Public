@@ -1,0 +1,16 @@
+rpi:
+  children:
+    pi-username:
+      hosts:
+        Host-01
+        Host-02
+        Host-03
+      vars:
+        ansible_user: "pi"
+        ansible_ssh_private_key_file: "~/.ssh/pi-username-key"
+    pi2-username:
+      hosts:
+        Host-04
+      vars:
+        ansible_user: "pi2-username"
+        ansible_ssh_private_key_file: "~/.ssh/pi2-username-key"
