@@ -1,0 +1,49 @@
+---
+# UpdateSystem - Centralized Configuration - EXAMPLE
+# Copy this file to all.yml and customize with your actual settings
+# =============================================================================
+
+# Encrypted password - replace with actual vault encrypted value
+# Run: echo 'your_password' | ansible-vault encrypt_string --stdin-name 'ansible_become_password'
+ansible_become_password: "CHANGE_ME"  # TODO: Replace with vault encrypted version
+
+# =============================================================================
+# ROLE ENABLEMENT
+# =============================================================================
+
+# Control which update operations are performed
+role_enabled:
+  system_update: true      # Update all system packages
+  pihole_update: true      # Update Pi-hole (if installed)
+
+# =============================================================================
+# SYSTEM UPDATE CONFIGURATION
+# =============================================================================
+
+# Package update settings
+system_update_cache: true
+system_update_autoremove: true
+system_update_autoclean: true
+
+# Reboot configuration
+system_update_reboot_if_required: false  # Set to true to auto-reboot after updates
+system_update_reboot_timeout: 600        # Reboot timeout in seconds (10 minutes)
+
+# Update type for Debian/Ubuntu (safe or dist)
+# - "safe": Standard upgrade (apt upgrade)
+# - "dist": Distribution upgrade (apt dist-upgrade)
+system_update_upgrade_type: "safe"
+
+# =============================================================================
+# PI-HOLE UPDATE CONFIGURATION
+# =============================================================================
+
+# Pi-hole update settings
+pihole_update_enabled: true       # Enable Pi-hole updates
+pihole_update_gravity: true       # Update gravity (blocklists)
+pihole_update_restart_ftl: false  # Restart FTL service after update
+pihole_update_check_status: true  # Check Pi-hole status after update
+
+# Pi-hole Serial Update Configuration (pihole_update_serial.yml)
+# Used for updating multiple Pi-hole servers one at a time with reboot
+pihole_update_delay_between_servers: 30  # Seconds to wait between servers (default: 30)

@@ -1,0 +1,67 @@
+---
+# K3s Cluster Setup Playbook
+# This playbook sets up a K3s Kubernetes cluster with server and agent nodes
+
+- name: Prepare all nodes with prerequisites
+  hosts: k3s_cluster
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Display node information
+      ansible.builtin.debug:
+        msg:
+          - "Preparing {{ inventory_hostname }} for K3s"
+          - "System: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "Role: {{ 'Server (Control Plane)' if 'k3s_server' in group_names else 'Agent (Worker Node)' }}"
+
+    - name: Configure system prerequisites
+      ansible.builtin.import_role:
+        name: k3s_prereq
+      when: role_enabled.k3s_prereq | default(true)
+
+- name: Install K3s server (control plane)
+  hosts: k3s_server
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Install K3s server
+      ansible.builtin.import_role:
+        name: k3s_server
+      when: role_enabled.k3s_server | default(true)
+
+- name: Install K3s agents (worker nodes)
+  hosts: k3s_agents
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Install K3s agent
+      ansible.builtin.import_role:
+        name: k3s_agent
+      when: role_enabled.k3s_agent | default(true)
+
+- name: Verify cluster setup
+  hosts: k3s_server
+  gather_facts: false
+  tasks:
+    - name: Wait for all nodes to be ready
+      ansible.builtin.command: kubectl get nodes
+      environment:
+        KUBECONFIG: ~/.kube/config
+      register: k3s_cluster_nodes
+      until: k3s_cluster_nodes.stdout.find('NotReady') == -1
+      retries: 12
+      delay: 10
+      changed_when: false
+
+    - name: Display cluster status
+      ansible.builtin.debug:
+        msg:
+          - "K3s cluster setup completed!"
+          - "Cluster nodes:"
+          - "{{ k3s_cluster_nodes.stdout_lines }}"
+          - ""
+          - "Next steps:"
+          - "  1. Test cluster: kubectl get nodes"
+          - "  2. Deploy workloads: kubectl apply -f deployment.yaml"
+          - "  3. Access kubeconfig from server at: ~/.kube/config"

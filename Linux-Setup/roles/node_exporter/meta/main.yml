@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: jason
+  description: Install and configure Prometheus Node Exporter for system metrics
+  company: "Personal"
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+  galaxy_tags:
+    - monitoring
+    - prometheus
+    - metrics
+    - system
+
+dependencies: []

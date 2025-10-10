@@ -1,0 +1,39 @@
+---
+- name: Create users (excluding root)
+  become: true
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups | default(users_default_groups) }}"
+    append: "{{ item.append | default(true) }}"
+    create_home: "{{ item.create_home | default(users_create_home) }}"
+    shell: "{{ item.shell | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ users_list }}"
+  when:
+    - users_list is defined and users_list | length > 0
+    - item.name != "root"
+
+- name: Set authorized keys for users
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    state: present
+    key: "{{ item.ssh_public_key }}"
+  loop: "{{ users_list }}"
+  when:
+    - users_list is defined and users_list | length > 0
+    - item.ssh_public_key is defined
+
+- name: Create sudoers files for users with sudo access
+  become: true
+  ansible.builtin.template:
+    src: "{{ item.sudoers_template | default(users_sudoers_template) }}"
+    dest: "{{ paths.sudoers_dir }}/020_{{ item.name }}"
+    owner: root
+    group: root
+    mode: "{{ users_sudoers_mode }}"
+    validate: /usr/sbin/visudo -csf %s
+  loop: "{{ users_list }}"
+  when:
+    - users_list is defined and users_list | length > 0
+    - item.sudo_access | default(false)
+    - item.name != "root"

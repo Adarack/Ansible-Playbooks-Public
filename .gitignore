@@ -1,0 +1,81 @@
+# Ansible WIP Repository - Root .gitignore
+# ===========================================
+# Repository-wide ignore patterns
+# Each playbook subdirectory has its own .gitignore for sensitive data
+
+# Ansible Runtime Files
+*.retry
+*.log
+.ansible/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+env/
+
+# IDE/Editor Files
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*.swn
+*~
+.vim/
+*.sublime-project
+*.sublime-workspace
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Temporary Files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# SSH Keys (safety net - should also be in playbook .gitignore)
+*.pem
+*.key
+*_key
+*_key.pub
+id_rsa*
+id_ed25519*
+id_ecdsa*
+
+# Vault Password Files (safety net)
+.vault_pass
+.vault_password
+vault_pass.txt
+
+# Local Testing/Debug
+test_*
+local_*
+debug_*
+scratch/
+tmp/
+
+# Documentation Build Artifacts
+docs/_build/
+site/
+
+# Ansible Galaxy
+.galaxy_install_info

@@ -1,0 +1,7 @@
+---
+# Monitoring Server configuration
+monitoring_server_servicename: "prometheus"
+monitoring_server_userid: "prometheus"
+monitoring_server_groupid: "prometheus"
+monitoring_server_exec_command: |
+  "{{ paths.bin_dir }}/prometheus --config.file={{ paths.config_dir }}/prometheus/prometheus.conf --storage.tsdb.path={{ paths.data_dir }}/prometheus --storage.tsdb.retention={{ services.data_retention }}"

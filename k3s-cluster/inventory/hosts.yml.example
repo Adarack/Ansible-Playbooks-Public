@@ -1,0 +1,26 @@
+---
+# K3s Cluster Inventory Configuration - EXAMPLE
+# Copy this file to hosts.yml and customize with your actual hosts
+
+k3s_cluster:
+  children:
+    k3s_server:
+      hosts:
+        # K3s control plane (server) - single node or HA cluster
+        # For HA: Add 3 or more server nodes
+        # 10.10.2.220:  # k3s-server-01
+        # 10.10.2.221:  # k3s-server-02 (HA)
+        # 10.10.2.222:  # k3s-server-03 (HA)
+      vars:
+        ansible_user: "pi"
+        ansible_ssh_private_key_file: "~/.ssh/pi_key"
+
+    k3s_agents:
+      hosts:
+        # K3s worker nodes (agents)
+        # 10.10.2.230:  # k3s-worker-01
+        # 10.10.2.231:  # k3s-worker-02
+        # 10.10.2.232:  # k3s-worker-03
+      vars:
+        ansible_user: "pi"
+        ansible_ssh_private_key_file: "~/.ssh/pi_key"

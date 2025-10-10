@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: jason
+  description: Manage multiple system users with SSH keys and sudo configuration
+  company: "Personal"
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+  galaxy_tags:
+    - users
+    - ssh
+    - security
+    - sudo
+
+dependencies: []

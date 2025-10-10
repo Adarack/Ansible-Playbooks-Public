@@ -1,0 +1,103 @@
+- name: Generic Linux System Setup
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Display system information
+      ansible.builtin.debug:
+        msg:
+          - "System: {{ ansible_system }} {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "OS Family: {{ ansible_os_family }}"
+          - "Hardware: {{ ansible_product_name | default('Unknown') }}"
+    - name: Update system packages and install common tools
+      ansible.builtin.import_role:
+        name: common-pkg
+      when: role_enabled.common_pkg | default(true)
+
+    - name: Configure Timezone and set NTP servers
+      ansible.builtin.import_role:
+        name: timezone
+      when: role_enabled.timezone | default(true)
+
+    - name: Install Chrony NTP client
+      ansible.builtin.import_role:
+        name: chrony
+      when: role_enabled.chrony | default(false)
+
+    - name: Install Docker
+      ansible.builtin.import_role:
+        name: docker
+      when: role_enabled.docker | default(true)
+
+    - name: Configure system users
+      ansible.builtin.import_role:
+        name: users
+      when: role_enabled.users | default(true)
+
+    - name: Configure sshd
+      ansible.builtin.import_role:
+        name: sshd_conf
+      when: role_enabled.sshd_conf | default(true)
+
+    - name: Install iftop network monitoring tool
+      ansible.builtin.import_role:
+        name: iftop
+      when: role_enabled.iftop | default(false)
+
+    - name: Install QEMU Guest Agent for VM integration
+      ansible.builtin.import_role:
+        name: qemu_guest_agent
+      when:
+        - role_enabled.qemu_guest_agent | default(false)
+        - "'vm_hardware' in group_names"
+
+    - name: Configure Raspberry Pi settings (raspi-config)
+      ansible.builtin.import_role:
+        name: raspi-config
+      when:
+        - role_enabled.raspi_config | default(false)
+        - "'raspberry_pi' in group_names"
+
+    - name: Install Uctronics OLED display (Raspberry Pi)
+      ansible.builtin.import_role:
+        name: uctronics
+      when:
+        - role_enabled.uctronics | default(false)
+        - "'uctronics' in group_names"
+
+    - name: Install rpi Exporter
+      ansible.builtin.import_role:
+        name: rpi_exporter
+      when:
+        - role_enabled.rpi_exporter | default(true)
+        - "'raspberry_pi' in group_names"
+
+    - name: Install Node Exporter
+      ansible.builtin.import_role:
+        name: node_exporter
+      when: role_enabled.node_exporter | default(true)
+
+    - name: Install rpi Reporter MQTT
+      ansible.builtin.import_role:
+        name: rpi_reporter
+      when:
+        - role_enabled.rpi_reporter | default(true)
+        - "'raspberry_pi' in group_names"
+
+    - name: Install monitoring server (Prometheus/Grafana)
+      ansible.builtin.import_role:
+        name: monitoring_server
+      when: role_enabled.monitoring_server | default(false)
+
+    - name: Install Pi-hole DNS ad blocker
+      ansible.builtin.import_role:
+        name: pihole
+      when:
+        - role_enabled.pihole | default(false)
+        - "'pihole' in group_names"
+
+    - name: Install Oh My Zsh
+      ansible.builtin.import_role:
+        name: oh_my_zsh
+      when: role_enabled.ohmyzsh | default(false)

@@ -1,0 +1,4 @@
+---
+# RPi Exporter configuration
+rpi_exporter_userid: "rpi_exporter"
+rpi_exporter_groupid: "rpi_exporter"

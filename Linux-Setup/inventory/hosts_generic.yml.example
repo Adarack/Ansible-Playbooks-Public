@@ -1,0 +1,153 @@
+# EXAMPLE GENERIC LINUX INVENTORY
+# Copy to hosts.yml and customize with your actual IPs and device types
+# Supports x86_64, ARM64, and ARM32 architectures across multiple distributions
+
+all:
+  children:
+    # Environment-based separation
+    production:
+      children:
+        infrastructure:
+          children:
+            dns_servers:
+              hosts:
+                192.168.1.10:  # EXAMPLE-PIHOLE-X86-01 (Ubuntu Server)
+                192.168.1.11:  # EXAMPLE-PIHOLE-ARM64-01 (Raspberry Pi 4)
+              vars:
+                ansible_user: "admin"
+                ansible_ssh_private_key_file: "~/.ssh/admin_key"
+                role_enabled:
+                  common_pkg: true
+                  pihole: true
+                  docker: false
+                  monitoring_server: false
+                  rpi_reporter: false
+
+            monitoring:
+              hosts:
+                192.168.1.20:   # EXAMPLE-MONITORING-X86 (Ubuntu Server)
+                192.168.1.21:   # EXAMPLE-MONITORING-ARM64 (Pi 4)
+              vars:
+                ansible_user: "admin"
+                ansible_ssh_private_key_file: "~/.ssh/admin_key"
+                role_enabled:
+                  monitoring_server: true
+                  node_exporter: true
+                  rpi_exporter: false  # Not available for x86_64 architecture
+
+        compute_infrastructure:
+          children:
+            x86_servers:
+              hosts:
+                192.168.1.30:  # EXAMPLE-UBUNTU-SERVER-01
+                192.168.1.31:  # EXAMPLE-CENTOS-SERVER-01
+                192.168.1.32:  # EXAMPLE-FEDORA-SERVER-01
+              vars:
+                ansible_user: "admin"
+                ansible_ssh_private_key_file: "~/.ssh/admin_key"
+                role_enabled:
+                  docker: true
+                  monitoring_server: false
+                  rpi_exporter: false  # Not available for x86_64 architecture
+
+            arm_devices:
+              children:
+                raspberry_pi:
+                  hosts:
+                    192.168.1.40:  # EXAMPLE-RPI4-COMPUTE-01
+                    192.168.1.41:  # EXAMPLE-RPI4-COMPUTE-02
+                  vars:
+                    ansible_user: "pi"
+                    ansible_ssh_private_key_file: "~/.ssh/pi_key"
+                    role_enabled:
+                      rpi_exporter: true   # Enable Pi-specific monitoring
+                      node_exporter: true
+                      rpi_reporter: true
+
+                arm_servers:
+                  hosts:
+                    192.168.1.50:  # EXAMPLE-ARM64-UBUNTU-01
+                    192.168.1.51:  # EXAMPLE-ORANGE-PI-01
+                  vars:
+                    ansible_user: "admin"
+                    ansible_ssh_private_key_file: "~/.ssh/admin_key"
+                    role_enabled:
+                      rpi_exporter: false  # Available but not Raspberry Pi hardware
+
+            kubernetes_cluster:
+              children:
+                control_plane:
+                  hosts:
+                    192.168.1.60:  # EXAMPLE-K8S-MASTER-X86-01
+                    192.168.1.61:  # EXAMPLE-K8S-MASTER-ARM-01
+                  vars:
+                    role_enabled:
+                      docker: true
+                      monitoring_server: false
+
+                workers:
+                  hosts:
+                    192.168.1.70:  # EXAMPLE-K8S-WORKER-X86-01
+                    192.168.1.71:  # EXAMPLE-K8S-WORKER-X86-02
+                    192.168.1.72:  # EXAMPLE-K8S-WORKER-ARM-01
+                    192.168.1.73:  # EXAMPLE-K8S-WORKER-ARM-02
+                  vars:
+                    role_enabled:
+                      docker: true
+                      monitoring_server: false
+
+    # Staging/Development environment
+    staging:
+      children:
+        newlinux:
+          hosts:
+            192.168.1.100:   # EXAMPLE-NEW-UBUNTU-SERVER
+            192.168.1.101:   # EXAMPLE-NEW-CENTOS-SERVER
+            192.168.1.102:   # EXAMPLE-NEW-RASPBERRY-PI
+            # Add new devices here for initial configuration
+          vars:
+            ansible_user: "admin"  # Default user, override per host if needed
+            ansible_ssh_private_key_file: "~/.ssh/admin_key"
+            # Most roles enabled by default for full setup
+
+    # Maintenance groups (cross-environment)
+    _maintenance:
+      children:
+        all_x86_systems:
+          children:
+            - x86_servers
+          vars:
+            hardware_type: "x86_64"
+
+        all_arm_systems:
+          children:
+            - arm_devices
+          vars:
+            hardware_type: "arm"
+
+        all_raspberry_pi:
+          children:
+            - raspberry_pi
+          vars:
+            hardware_type: "raspberry_pi"
+            role_enabled:
+              rpi_exporter: true  # Always enable for actual Raspberry Pis
+
+        # Distribution-specific groups
+        debian_family:
+          children:
+            # Add hosts running Ubuntu, Debian, Raspbian here
+          vars:
+            package_manager: "apt"
+
+        redhat_family:
+          children:
+            # Add hosts running RHEL, CentOS, Fedora, Rocky here
+          vars:
+            package_manager: "yum"
+
+        arch_family:
+          children:
+            # Add hosts running Arch, Manjaro here
+          vars:
+            package_manager: "pacman"

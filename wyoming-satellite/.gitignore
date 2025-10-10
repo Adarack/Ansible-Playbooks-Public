@@ -1,0 +1,88 @@
+# Sensitive Information - DO NOT COMMIT
+# ===========================================
+
+# Actual configuration files with real credentials/IPs
+group_vars/all.yml
+inventory/hosts.yml
+inventory/hosts_improved.yml
+inventory/hosts_generic.yml
+
+# SSH Keys and Certificates
+*.pem
+*.key
+*.crt
+*.cert
+*_key
+*_key.pub
+id_rsa*
+id_ed25519*
+authorized_keys*
+
+# Vault files
+vault.yml
+vault_*
+*.vault
+.vault_pass
+
+# Environment files
+.env
+.env.*
+secrets.yml
+credentials.yml
+passwords.yml
+
+# Ansible runtime files
+*.retry
+.ansible/
+ansible.log
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.vim/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# OS generated files
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Local testing
+test_*
+local_*
+debug_*
+
+# Template files that may contain sensitive hostnames
+roles/*/templates/*.j2
+!roles/*/templates/*.j2.example
+
+# Ansible Galaxy dependencies
+roles/*/
+!roles/users/
+!roles/common-pkg/
+!roles/docker/
+!roles/timezone/
+!roles/sshd_conf/
+!roles/rpi_exporter/
+!roles/node_exporter/
+!roles/rpi_reporter/
+!roles/monitoring_server/
+
+# Exception: Keep example files
+!*.example
+!*.sample
+!*.template

@@ -1,0 +1,120 @@
+---
+# Pi-hole Serial Update Playbook
+# Updates Pi-hole servers one at a time with reboot and verification
+# This ensures DNS availability by keeping at least one Pi-hole online
+
+- name: Pi-hole Serial Update with Reboot and Verification
+  hosts: pihole
+  gather_facts: true
+  become: true
+  serial: 1  # Process one host at a time
+  tasks:
+    - name: Display Pi-hole server being updated
+      ansible.builtin.debug:
+        msg:
+          - "=================================================="
+          - "Updating Pi-hole server: {{ inventory_hostname }}"
+          - "IP: {{ ansible_default_ipv4.address | default('N/A') }}"
+          - "System: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "=================================================="
+
+    - name: Update system packages on Pi-hole server
+      ansible.builtin.import_role:
+        name: system_update
+      when: role_enabled.system_update | default(true)
+
+    - name: Update Pi-hole components
+      ansible.builtin.import_role:
+        name: pihole_update
+      when: role_enabled.pihole_update | default(true)
+
+    - name: Display pre-reboot message
+      ansible.builtin.debug:
+        msg:
+          - "Updates complete on {{ inventory_hostname }}"
+          - "Rebooting server now..."
+          - "Waiting for server to come back online..."
+
+    - name: Reboot Pi-hole server
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+        connect_timeout: 30
+        pre_reboot_delay: 10
+        post_reboot_delay: 30
+        test_command: uptime
+        msg: "Rebooting {{ inventory_hostname }} after Pi-hole updates"
+      become: true
+
+    - name: Wait for server to be fully operational
+      ansible.builtin.wait_for_connection:
+        connect_timeout: 30
+        sleep: 5
+        delay: 10
+        timeout: 300
+
+    - name: Gather facts after reboot
+      ansible.builtin.setup:
+
+    - name: Verify Pi-hole is running after reboot
+      ansible.builtin.command: pihole status
+      register: pihole_status_post_reboot
+      changed_when: false
+      failed_when: pihole_status_post_reboot.rc != 0
+      retries: 5
+      delay: 10
+      until: pihole_status_post_reboot.rc == 0
+
+    - name: Verify Pi-hole FTL service is running
+      ansible.builtin.systemd_service:
+        name: pihole-FTL
+        state: started
+      check_mode: true
+      register: ftl_service_check
+      failed_when: false
+
+    - name: Display post-reboot verification results
+      ansible.builtin.debug:
+        msg:
+          - "✅ Server {{ inventory_hostname }} is back online"
+          - "Uptime: {{ ansible_uptime_seconds // 60 }} minutes"
+          - "Pi-hole status: {{ pihole_status_post_reboot.stdout | default('OK') }}"
+          - "FTL service: {{ 'Running' if ftl_service_check.status.ActiveState | default('') == 'active' else 'Checking...' }}"
+          - ""
+          - "Proceeding to next Pi-hole server..."
+
+    - name: Pause before moving to next server
+      ansible.builtin.pause:
+        seconds: "{{ pihole_update_delay_between_servers | default(30) }}"
+        prompt: "Waiting {{ pihole_update_delay_between_servers | default(30) }} seconds before updating next server..."
+
+- name: Final verification of all Pi-hole servers
+  hosts: pihole
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Check final status of all Pi-hole servers
+      ansible.builtin.command: pihole status
+      register: final_pihole_status
+      changed_when: false
+
+    - name: Display final status summary
+      ansible.builtin.debug:
+        msg:
+          - "=================================================="
+          - "All Pi-hole servers updated successfully!"
+          - "=================================================="
+          - "Server: {{ inventory_hostname }}"
+          - "Status: {{ final_pihole_status.stdout }}"
+
+    - name: Final summary
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "🎉 Pi-hole Serial Update Complete!"
+          - ""
+          - "Server: {{ inventory_hostname }}"
+          - "  ✅ Updated (system packages + Pi-hole)"
+          - "  ✅ Rebooted"
+          - "  ✅ Verified online"
+          - ""
+          - "DNS service maintained throughout update process."

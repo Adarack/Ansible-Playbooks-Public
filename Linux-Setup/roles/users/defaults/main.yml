@@ -1,0 +1,7 @@
+---
+# Users role default configuration
+users_list: []
+users_default_groups: "adm,dialout,cdrom,sudo,audio,video,plugdev,games,users,input,render,netdev,gpio,i2c,spi,docker"
+users_create_home: true
+users_sudoers_mode: "0440"
+users_sudoers_template: "sudoers.j2"

@@ -1,0 +1,91 @@
+# Debian/Ubuntu family package management
+- name: Update and full-upgrade apt packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: 'full'
+  when: ansible_os_family == "Debian"
+
+- name: Install common packages (Debian/Ubuntu)
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - git
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - virtualenv
+      - python3-setuptools
+      - python3-pip
+      - python3-venv
+      - htop
+      - unzip
+      - wget
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Clean autoremove and purge old packages (Debian/Ubuntu)
+  become: true
+  ansible.builtin.apt:
+    clean: true
+    autoremove: true
+    purge: true
+  when: ansible_os_family == "Debian"
+
+# Red Hat family package management
+- name: Update packages (RHEL/CentOS/Fedora)
+  become: true
+  ansible.builtin.package:
+    name: "*"
+    state: latest
+  when: ansible_os_family == "RedHat"
+
+- name: Install common packages (RHEL/CentOS/Fedora)
+  become: true
+  ansible.builtin.package:
+    name:
+      - git
+      - ca-certificates
+      - curl
+      - wget
+      - unzip
+      - htop
+      - python3
+      - python3-pip
+      - python3-setuptools
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install EPEL repository (RHEL/CentOS)
+  become: true
+  ansible.builtin.package:
+    name: epel-release
+    state: present
+  when:
+    - ansible_os_family == "RedHat"
+    - ansible_distribution in ["CentOS", "Rocky", "AlmaLinux"]
+
+# Arch family package management
+- name: Update package database (Arch)
+  become: true
+  community.general.pacman:
+    update_cache: true
+    upgrade: true
+  when: ansible_os_family == "Archlinux"
+
+- name: Install common packages (Arch)
+  become: true
+  community.general.pacman:
+    name:
+      - git
+      - ca-certificates
+      - curl
+      - wget
+      - unzip
+      - htop
+      - python
+      - python-pip
+      - python-setuptools
+    state: present
+  when: ansible_os_family == "Archlinux"

@@ -1,0 +1,43 @@
+---
+- name: System and Pi-hole Update Playbook
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Display system information
+      ansible.builtin.debug:
+        msg:
+          - "Updating: {{ inventory_hostname }}"
+          - "System: {{ ansible_system }} {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+
+    - name: Check if this is a PiKVM system (early detection)
+      ansible.builtin.command: which pikvm-update
+      register: pikvm_detect_early
+      changed_when: false
+      failed_when: false
+
+    - name: Set PiKVM detection fact
+      ansible.builtin.set_fact:
+        is_pikvm_system: "{{ pikvm_detect_early.rc == 0 }}"
+
+    - name: Update all system packages
+      ansible.builtin.import_role:
+        name: system_update
+      when:
+        - role_enabled.system_update | default(true)
+        - not (is_pikvm_system | default(false))
+
+    - name: Update Pi-hole (if installed)
+      ansible.builtin.import_role:
+        name: pihole_update
+      when: role_enabled.pihole_update | default(true)
+
+    - name: Update PiKVM (if detected)
+      ansible.builtin.import_role:
+        name: pikvm_update
+      when: role_enabled.pikvm_update | default(true)
+
+    - name: Display update completion
+      ansible.builtin.debug:
+        msg: "Update completed successfully on {{ inventory_hostname }}"

@@ -1,0 +1,152 @@
+---
+# Wyoming Satellite - Centralized Configuration - EXAMPLE
+# Copy this file to all.yml and customize with your actual settings
+# =============================================================================
+
+# Encrypted password - replace with actual vault encrypted value
+# Run: echo 'your_password' | ansible-vault encrypt_string --stdin-name 'ansible_become_password'
+ansible_become_password: "CHANGE_ME"  # TODO: Replace with vault encrypted version
+
+# =============================================================================
+# ROLE ENABLEMENT
+# =============================================================================
+
+role_enabled:
+  respeaker_2mic_hat: false    # Install ReSpeaker 2-Mics Pi HAT drivers (auto-detects v1 or v2 hardware)
+  wyoming_satellite: true      # Install Wyoming Satellite voice assistant
+  snapcast_client: true        # Install Snapcast client for multi-room audio
+  pulseaudio_ducking: true     # Configure PulseAudio ducking
+
+# =============================================================================
+# WYOMING SATELLITE CONFIGURATION
+# =============================================================================
+
+# Installation
+wyoming_satellite_install_dir: "/opt/wyoming-satellite"
+wyoming_satellite_user: "wyoming"
+wyoming_satellite_group: "wyoming"
+
+# Repository
+wyoming_satellite_repo_url: "https://github.com/rhasspy/wyoming-satellite.git"
+wyoming_satellite_repo_version: "master"
+
+# Optional features
+wyoming_satellite_install_vad: true      # Voice Activity Detection
+wyoming_satellite_install_noise: true   # Audio enhancement (noise reduction/gain)
+
+# Service
+wyoming_satellite_enable_service: true
+wyoming_satellite_start_service: true
+
+# Connection to Home Assistant Wyoming server
+wyoming_satellite_server_host: "CHANGE_ME_TO_HOME_ASSISTANT_IP"  # Change to your Home Assistant IP
+wyoming_satellite_server_port: 10300
+
+# Audio devices (adjust for your hardware)
+wyoming_satellite_mic_device: "plughw:CARD=seeed2micvoicec,DEV=0"  # Adjust for your microphone
+wyoming_satellite_snd_device: "plughw:CARD=seeed2micvoicec,DEV=0"  # Adjust for your speaker
+wyoming_satellite_mic_volume_multiplier: "1.0"
+wyoming_satellite_snd_volume_multiplier: "1.0"
+
+# Wake word settings
+wyoming_satellite_wake_word_enabled: true
+wyoming_satellite_wake_word: "ok_nabu"  # Options: ok_nabu, hey_jarvis, hey_mycroft, alexa
+
+# Voice Activity Detection
+wyoming_satellite_vad_enabled: true
+
+# Audio enhancement
+wyoming_satellite_noise_suppression: 2  # 0-4, higher = more suppression
+wyoming_satellite_auto_gain: 15         # 0-31, automatic gain control in dBFS
+wyoming_satellite_volume_multiplier: "2.0"
+
+# Event commands (required for ducking)
+wyoming_satellite_event_dir: "{{ wyoming_satellite_install_dir }}/events"
+wyoming_satellite_enable_event_commands: true
+
+# =============================================================================
+# SNAPCAST CLIENT CONFIGURATION
+# =============================================================================
+
+# Server connection
+snapcast_client_server_host: "CHANGE_ME_TO_SNAPCAST_SERVER_IP"  # Change to your Snapcast server IP
+snapcast_client_server_port: 1704
+
+# Client settings
+snapcast_client_host_id: "{{ ansible_hostname }}"
+snapcast_client_instance: 1
+snapcast_client_soundcard: "default"
+
+# PulseAudio integration (required for ducking)
+snapcast_client_use_pulseaudio: true
+
+# Service
+snapcast_client_enable_service: true
+snapcast_client_start_service: true
+
+# Raspberry Pi audio output (1=3.5mm jack, 2=HDMI, 0=auto)
+snapcast_client_rpi_audio_output: 1
+snapcast_client_configure_rpi_audio: true
+
+# =============================================================================
+# PULSEAUDIO DUCKING CONFIGURATION
+# =============================================================================
+
+# User (must match Wyoming Satellite user)
+pulseaudio_ducking_user: "{{ wyoming_satellite_user }}"
+
+# Event directory (must match Wyoming Satellite)
+pulseaudio_ducking_event_dir: "{{ wyoming_satellite_event_dir }}"
+
+# Volume levels (0-100)
+pulseaudio_ducking_volume: 20          # Volume when ducked (20% = quiet)
+pulseaudio_ducking_normal_volume: 100  # Fallback volume if original cannot be restored
+
+# Snapcast sink name
+pulseaudio_ducking_snapcast_sink: "snapcast"
+
+# =============================================================================
+# RESPEAKER 2-MICS PI HAT CONFIGURATION (v1 and v2)
+# =============================================================================
+# Note: The HinTak seeed-voicecard driver automatically detects v1 or v2 hardware.
+# No need to know which version you have - the driver handles both!
+
+# Driver repository (HinTak fork is actively maintained for newer kernels)
+respeaker_2mic_hat_driver_repo: "https://github.com/HinTak/seeed-voicecard.git"
+respeaker_2mic_hat_driver_version: "master"
+
+# LED control (APA102 RGB LEDs for visual feedback)
+respeaker_2mic_hat_enable_led_service: true
+respeaker_2mic_hat_led_script_dir: "/opt/respeaker-leds"
+
+# Boot configuration (enables I2S audio interface)
+respeaker_2mic_hat_configure_boot: true
+
+# Reboot after driver installation (required for kernel module to load)
+respeaker_2mic_hat_reboot_after_install: true
+
+# =============================================================================
+# AUDIO DEVICE CONFIGURATION
+# =============================================================================
+#
+# To find your audio devices, run on the target system:
+#
+# List playback devices:
+#   aplay -L
+#
+# List recording devices:
+#   arecord -L
+#
+# List PulseAudio sinks:
+#   pactl list short sinks
+#
+# List PulseAudio sources:
+#   pactl list short sources
+#
+# Common device examples:
+# - ReSpeaker 2-Mic HAT: plughw:CARD=seeed2micvoicec,DEV=0
+# - ReSpeaker 4-Mic HAT: plughw:CARD=seeed4micvoicec,DEV=0
+# - USB microphone: plughw:CARD=Device,DEV=0
+# - Built-in Raspberry Pi: plughw:CARD=Headphones,DEV=0
+#
+# =============================================================================

@@ -1,0 +1,82 @@
+# Docker installation for Debian/Ubuntu family
+- name: Add Docker GPG key (Debian/Ubuntu)
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ repositories.docker.gpg_url }}"
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+  when: ansible_os_family == "Debian"
+
+- name: Add Docker repository (Debian/Ubuntu)
+  become: true
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' if ansible_architecture == 'aarch64' else 'armhf' }}
+      signed-by=/etc/apt/keyrings/docker.asc] {{ repositories.docker.repo_url }} {{ repositories.docker.ubuntu_release }} stable
+    state: present
+    filename: docker
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker packages (Debian/Ubuntu)
+  become: true
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+      - python3-docker
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+# Docker installation for Red Hat family
+- name: Add Docker repository (RHEL/CentOS/Fedora)
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ repositories.docker.repo_url }}/docker-ce.repo"
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+  when: ansible_os_family == "RedHat"
+
+- name: Install Docker packages (RHEL/CentOS/Fedora)
+  become: true
+  ansible.builtin.package:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+      - python3-docker
+    state: present
+  when: ansible_os_family == "RedHat"
+
+# Docker installation for Arch family
+- name: Install Docker packages (Arch)
+  become: true
+  community.general.pacman:
+    name:
+      - docker
+      - docker-compose
+      - python-docker
+    state: present
+  when: ansible_os_family == "Archlinux"
+
+# Common Docker service configuration (all distributions)
+- name: Start and enable Docker service
+  become: true
+  ansible.builtin.systemd_service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add users to docker group
+  become: true
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: docker
+    append: true
+  loop: "{{ users_list }}"
+  when:
+    - users_list is defined
+    - item.name != "root"

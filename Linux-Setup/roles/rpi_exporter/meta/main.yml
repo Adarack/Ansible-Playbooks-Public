@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: jason
+  description: Install and configure Raspberry Pi hardware metrics exporter
+  company: "Personal"
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+  galaxy_tags:
+    - monitoring
+    - prometheus
+    - raspberrypi
+    - metrics
+
+dependencies: []

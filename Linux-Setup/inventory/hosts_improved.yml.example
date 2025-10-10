@@ -1,0 +1,148 @@
+# EXAMPLE IMPROVED INVENTORY - Copy to hosts_improved.yml and customize with your actual IPs
+# DO NOT commit real IP addresses, hostnames, or device names to version control
+
+# Improved inventory structure for better concern separation
+all:
+  children:
+    # Environment-based separation
+    production:
+      children:
+        infrastructure:
+          children:
+            dns_servers:
+              hosts:
+                192.168.1.10:  # EXAMPLE-PIHOLE-01
+                192.168.1.11:  # EXAMPLE-PIHOLE-02
+              vars:
+                ansible_user: "your_username"
+                ansible_ssh_private_key_file: "~/.ssh/your_username_key"
+                role_enabled:
+                  common_pkg: true
+                  docker: false
+                  monitoring_server: false
+                  rpi_reporter: false
+
+            monitoring:
+              hosts:
+                192.168.1.20:   # EXAMPLE-MONITORING-SERVER
+              vars:
+                ansible_user: "your_username"
+                ansible_ssh_private_key_file: "~/.ssh/your_username_key"
+                role_enabled:
+                  monitoring_server: true
+                  rpi_exporter: false
+                  node_exporter: true
+
+        iot_devices:
+          children:
+            mesh_network:
+              hosts:
+                192.168.1.30:   # EXAMPLE-MESH-PI-01
+                # 192.168.1.31:   # EXAMPLE-MESH-PI-02
+              vars:
+                ansible_user: "pi"
+                ansible_ssh_private_key_file: "~/.ssh/pi_key"
+                role_enabled:
+                  rpi_reporter: true
+                  rpi_exporter: true
+                  monitoring_server: false
+
+            automation:
+              hosts:
+                192.168.1.40:   # EXAMPLE-ZIGBEE-COORDINATOR
+                # 192.168.1.41:   # EXAMPLE-ZWAVE-COORDINATOR
+              vars:
+                ansible_user: "your_username"
+                ansible_ssh_private_key_file: "~/.ssh/your_username_key"
+                role_enabled:
+                  rpi_reporter: true
+                  docker: true
+
+        compute_cluster:
+          children:
+            control_plane:
+              hosts:
+                192.168.1.50:  # EXAMPLE-KUBE-CP-01
+                192.168.1.51:  # EXAMPLE-KUBE-CP-02
+                192.168.1.52:  # EXAMPLE-KUBE-CP-03
+              vars:
+                ansible_user: "pi"
+                ansible_ssh_private_key_file: "~/.ssh/pi_key"
+                role_enabled:
+                  docker: true
+                  monitoring_server: false
+                  rpi_reporter: false
+
+            workers:
+              hosts:
+                192.168.1.60:  # EXAMPLE-KUBE-WK-01
+                192.168.1.61:  # EXAMPLE-KUBE-WK-02
+                192.168.1.62:  # EXAMPLE-KUBE-WK-03
+                192.168.1.63:  # EXAMPLE-KUBE-WK-04
+                192.168.1.64:  # EXAMPLE-KUBE-WK-05
+              vars:
+                ansible_user: "pi"
+                ansible_ssh_private_key_file: "~/.ssh/pi_key"
+                role_enabled:
+                  docker: true
+                  monitoring_server: false
+                  rpi_reporter: false
+
+        printers:
+          hosts:
+            192.168.1.70:    # EXAMPLE-3D-PRINTER-01
+            192.168.1.71:    # EXAMPLE-3D-PRINTER-02
+          vars:
+            ansible_user: "pi"
+            ansible_ssh_private_key_file: "~/.ssh/pi_key"
+            role_enabled:
+              rpi_reporter: true
+              docker: true
+              monitoring_server: false
+
+    # Staging/Development environment
+    staging:
+      children:
+        newpi:
+          hosts:
+            192.168.1.100:   # EXAMPLE-NEW-DEVICE-01
+            # 192.168.1.101:   # EXAMPLE-NEW-DEVICE-02
+            # Add new devices here for initial configuration
+          vars:
+            ansible_user: "pi"
+            ansible_ssh_private_key_file: "~/.ssh/pi_key"
+            # All roles enabled by default for full setup
+
+    # Maintenance groups (cross-environment)
+    _maintenance:
+      children:
+        all_pi_devices:
+          children:
+            - mesh_network
+            - control_plane
+            - workers
+            - printers
+          vars:
+            ansible_user: "pi"
+
+        all_admin_devices:
+          children:
+            - dns_servers
+            - monitoring
+            - automation
+          vars:
+            ansible_user: "your_username"
+
+        # Example: Hardware-specific groups
+        # raspberry_pi_4:
+        #   children:
+        #     - control_plane
+        #     - workers
+        #   vars:
+        #     hardware_type: "rpi4"
+
+        # orange_pi:
+        #   children:
+        #     - dns_servers
+        #   vars:
+        #     hardware_type: "orange_pi"

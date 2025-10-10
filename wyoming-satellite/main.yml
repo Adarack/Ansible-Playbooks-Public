@@ -1,0 +1,48 @@
+---
+- name: Wyoming Satellite Voice Assistant Setup
+  hosts: wyoming_satellites
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Display system information
+      ansible.builtin.debug:
+        msg:
+          - "Setting up Wyoming Satellite on {{ inventory_hostname }}"
+          - "System: {{ ansible_system }} {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+
+    - name: Install ReSpeaker 2-Mics Pi HAT drivers (v1/v2)
+      ansible.builtin.import_role:
+        name: respeaker_2mic_hat
+      when: role_enabled.respeaker_2mic_hat | default(false)
+
+    - name: Install Snapcast client for multi-room audio
+      ansible.builtin.import_role:
+        name: snapcast_client
+      when: role_enabled.snapcast_client | default(true)
+
+    - name: Install Wyoming Satellite voice assistant
+      ansible.builtin.import_role:
+        name: wyoming_satellite
+      when: role_enabled.wyoming_satellite | default(true)
+
+    - name: Configure PulseAudio ducking
+      ansible.builtin.import_role:
+        name: pulseaudio_ducking
+      when: role_enabled.pulseaudio_ducking | default(true)
+
+    - name: Display setup completion
+      ansible.builtin.debug:
+        msg:
+          - "Wyoming Satellite setup completed on {{ inventory_hostname }}"
+          - "Services installed:"
+          - "  - ReSpeaker 2-Mics Pi HAT (v1/v2 auto-detect){% if role_enabled.respeaker_2mic_hat | default(false) %} ✓{% endif %}"
+          - "  - Wyoming Satellite (voice assistant)"
+          - "  - Snapcast Client (multi-room audio)"
+          - "  - PulseAudio Ducking (audio volume control)"
+          - ""
+          - "Next steps:"
+          - "  1. Configure Home Assistant Wyoming integration"
+          - "  2. Set Snapcast server IP in group_vars/all.yml"
+          - "  3. Test wake word detection: say '{{ wyoming_satellite_wake_word }}'"
+          - "  4. Verify ducking works when speaking"

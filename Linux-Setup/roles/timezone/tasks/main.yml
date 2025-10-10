@@ -1,0 +1,25 @@
+- name: Set timezone to America/New_York
+  become: true
+  community.general.timezone:
+    name: America/New_York
+
+- name: Make sure timesyncd is stopped
+  become: true
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd.service
+    state: stopped
+
+- name: Copy over the timesyncd config
+  become: true
+  ansible.builtin.template:
+    src: 'timesyncd.j2'
+    dest: /etc/systemd/timesyncd.conf
+    owner: root
+    group: root
+    mode: '644'
+
+- name: Make sure timesyncd is started
+  become: true
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd.service
+    state: started

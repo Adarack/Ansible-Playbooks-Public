@@ -1,0 +1,78 @@
+---
+# K3s Cluster - Centralized Configuration - EXAMPLE
+# Copy this file to all.yml and customize with your actual settings
+# =============================================================================
+
+# Encrypted password - replace with actual vault encrypted value
+# Run: echo 'your_password' | ansible-vault encrypt_string --stdin-name 'ansible_become_password'
+ansible_become_password: "CHANGE_ME"  # TODO: Replace with vault encrypted version
+
+# =============================================================================
+# ROLE ENABLEMENT
+# =============================================================================
+
+role_enabled:
+  k3s_prereq: true      # System prerequisites and preparation
+  k3s_server: true      # Install K3s server (control plane)
+  k3s_agent: true       # Install K3s agent (worker nodes)
+
+# =============================================================================
+# PREREQUISITES CONFIGURATION
+# =============================================================================
+
+# Disable swap (required for Kubernetes)
+k3s_prereq_disable_swap: true
+
+# Configure firewall rules
+k3s_prereq_configure_firewall: true
+
+# Enable cgroups on Raspberry Pi (required)
+k3s_prereq_enable_cgroups_rpi: true
+
+# =============================================================================
+# K3S SERVER (CONTROL PLANE) CONFIGURATION
+# =============================================================================
+
+# K3s version (use "latest" or specific version like "v1.28.5+k3s1")
+k3s_server_version: "latest"
+
+# Disable built-in components (if using alternatives)
+k3s_server_disable_components:
+  # - "traefik"        # Disable if using Nginx/Istio
+  # - "servicelb"      # Disable if using MetalLB
+  # - "local-storage"  # Disable if using Longhorn/Rook
+  # - "metrics-server" # Disable if using custom metrics
+
+# Network configuration
+k3s_server_cluster_cidr: "10.42.0.0/16"    # Pod network CIDR
+k3s_server_service_cidr: "10.43.0.0/16"    # Service network CIDR
+
+# Flannel backend (vxlan, wireguard-native, or none)
+k3s_server_flannel_backend: "vxlan"
+
+# TLS SANs (additional IPs/hostnames for API server certificate)
+k3s_server_tls_san:
+  # - "k3s.example.com"
+  # - "192.168.1.100"
+
+# Additional K3s server arguments (optional)
+# k3s_server_extra_args: "--disable-cloud-controller --kube-apiserver-arg=feature-gates=EphemeralContainers=true"
+
+# =============================================================================
+# K3S AGENT (WORKER NODE) CONFIGURATION
+# =============================================================================
+
+# Server URL (auto-detected from inventory, override if needed)
+# k3s_agent_server_url: "https://10.10.2.220:6443"
+
+# Node labels (key=value format)
+k3s_agent_node_labels:
+  # - "node-type=worker"
+  # - "environment=production"
+
+# Node taints (key=value:effect format)
+k3s_agent_node_taints:
+  # - "dedicated=gpu:NoSchedule"
+
+# Additional K3s agent arguments (optional)
+# k3s_agent_extra_args: "--kubelet-arg=feature-gates=EphemeralContainers=true"

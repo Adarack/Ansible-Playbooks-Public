@@ -1,0 +1,147 @@
+# EXAMPLE CONFIGURATION - Copy to all.yml and customize with your values
+# DO NOT commit actual passwords, IPs, or SSH keys to version control
+
+# Encrypted password - replace with actual vault encrypted value
+# Run: echo 'YOUR_SUDO_PASSWORD' | ansible-vault encrypt_string --stdin-name 'ansible_become_password'
+ansible_become_password: "YOUR_SUDO_PASSWORD"  # TODO: Replace with vault encrypted version
+
+# Users configuration
+users_list:
+  - name: root
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... your-root-public-key-here"
+    # No sudoers file needed for root (sudo_access: false by default)
+
+  - name: your_username
+    groups: "adm,dialout,cdrom,sudo,audio,video,plugdev,games,users,input,render,netdev,gpio,i2c,spi,docker"
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... your-user-public-key-here"
+    sudo_access: true
+
+  - name: pi
+    groups: "adm,dialout,cdrom,sudo,audio,video,plugdev,games,users,input,render,netdev,gpio,i2c,spi,docker"
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... pi-user-public-key-here"
+    sudo_access: true
+
+  # Example: To add additional users, uncomment and customize
+  # - name: developer
+  #   groups: "adm,dialout,cdrom,sudo,audio,video,plugdev,games,users,input,render,netdev,gpio,i2c,spi,docker"
+  #   ssh_public_key: "ssh-rsa AAAAB3N... developer-public-key-here"
+  #   sudo_access: true
+
+# =============================================================================
+# CENTRALIZED INFRASTRUCTURE CONFIGURATION
+# =============================================================================
+
+# Role enablement flags - control which roles are executed
+role_enabled:
+  common_pkg: true           # System updates and essential packages
+  docker: true               # Docker and Docker Compose installation
+  timezone: true             # NTP and timezone configuration (systemd-timesyncd)
+  chrony: false              # Chrony NTP client (alternative to timezone role, more accurate)
+  users: true                # User management and SSH configuration
+  sshd_conf: true           # SSH daemon configuration
+  iftop: false               # Network bandwidth monitoring tool
+  qemu_guest_agent: false    # QEMU Guest Agent for VM integration (Proxmox/KVM)
+  uctronics: false           # Uctronics OLED display for Raspberry Pi (SKU RM0004)
+  rpi_exporter: true        # Raspberry Pi hardware metrics exporter
+  node_exporter: true       # System metrics exporter
+  rpi_reporter: true        # MQTT reporting service
+  monitoring_server: false  # Monitoring infrastructure (prometheus/grafana)
+  pihole: false             # Pi-hole network-wide ad blocker
+  ohmyzsh: false             # Oh My Zsh shell enhancement
+
+# Software versions - centralized for easy updates across all roles
+software_versions:
+  prometheus: "2.44.0"
+  grafana: "9.5.2"
+  node_exporter: "1.9.1"
+  rpi_exporter: "0.8.0"
+
+# MQTT Configuration - TODO: encrypt with ansible-vault
+mqtt_config:
+  host: "YOUR_MQTT_BROKER_IP"      # e.g., "192.168.1.100"
+  port: 1883
+  username: "YOUR_MQTT_USERNAME"    # e.g., "homeassistant"
+  password: "YOUR_MQTT_PASSWORD"    # TODO: Use ansible-vault
+  discovery_prefix: "homeassistant"
+  base_topic: "home/nodes"
+  keepalive: 60
+  interval_minutes: 5
+  update_check_hours: 4
+
+# Chrony NTP Configuration
+# Note: Disable timezone role when using chrony (they conflict)
+chrony_ntp_servers:
+  # Local NTP servers (if you have them - comment out if not)
+  # - server: "192.168.1.1"
+  #   options: "iburst minpoll 3 maxpoll 5 prefer"
+  #   type: "server"
+
+  # Public NTP pools (recommended)
+  - server: "time.nist.gov"
+    options: "iburst maxsources 8"
+    type: "pool"
+  - server: "2.debian.pool.ntp.org"
+    options: "iburst maxsources 4"
+    type: "pool"
+  - server: "ntp.ubuntu.com"
+    options: "iburst maxsources 4"
+    type: "pool"
+
+# Chrony advanced options
+chrony_disable_timesyncd: true      # Disable systemd-timesyncd (conflicts with chrony)
+chrony_driftfile: "/var/lib/chrony/chrony.drift"
+chrony_logdir: "/var/log/chrony"
+chrony_maxupdateskew: 100.0
+chrony_rtcsync: true                # Enable RTC sync (hardware clock)
+chrony_makestep_threshold: 1        # Step clock if off by > 1 second
+chrony_makestep_limit: 3            # Only in first 3 updates
+
+# Uctronics OLED Display Configuration (Raspberry Pi SKU RM0004)
+uctronics_repo_url: "https://github.com/Adarack/SKU_RM0004_Fork.git"
+uctronics_repo_version: "main"
+uctronics_install_dir: "/opt/uctronics"
+uctronics_user: "pi"
+uctronics_group: "pi"
+uctronics_enable_i2c: true
+uctronics_reboot_after_install: false  # Set to true to auto-reboot after installation
+
+# Installation paths and directories
+paths:
+  bin_dir: "/usr/local/bin"
+  data_dir: "/data"
+  opt_dir: "/opt"
+  config_dir: "/etc"
+  systemd_dir: "/etc/systemd/system"
+  sudoers_dir: "/etc/sudoers.d"
+
+# Repository URLs and download sources
+repositories:
+  docker:
+    gpg_url: "https://download.docker.com/linux/ubuntu/gpg"
+    repo_url: "https://download.docker.com/linux/ubuntu"
+    ubuntu_release: "focal"
+
+  prometheus:
+    base_url: "https://github.com/prometheus/prometheus/releases/download"
+    architecture: "linux-arm64"
+
+  grafana:
+    base_url: "https://dl.grafana.com/oss/release"
+    architecture: "arm64"
+
+  node_exporter:
+    base_url: "https://github.com/prometheus/node_exporter/releases/download"
+    architecture: "linux-arm64"
+
+  rpi_exporter:
+    base_url: "https://github.com/lukasmalkmus/rpi_exporter/releases/download"
+    architecture: "linux-arm64"
+
+  rpi_reporter:
+    git_url: "https://github.com/ironsheep/RPi-Reporter-MQTT2HA-Daemon.git"
+
+# Service configuration defaults
+services:
+  data_retention: "2d"
+  restart_policy: "always"
+  enable_on_boot: true

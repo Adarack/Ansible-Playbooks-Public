@@ -1,0 +1,118 @@
+---
+- name: 'Install packages'
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - adduser
+      - libfontconfig1
+
+- name: Creating prometheus user group
+  become: true
+  ansible.builtin.group:
+    name: "{{ monitoring_server_groupid }}"
+
+- name: Creating prometheus user
+  become: true
+  ansible.builtin.user:
+    name: "{{ monitoring_server_userid }}"
+    group: "{{ monitoring_server_groupid }}"
+    system: true
+    shell: "/sbin/nologin"
+    comment: "{{ monitoring_server_userid }} nologin User"
+    createhome: "no"
+    state: present
+
+- name: Install prometheus
+  ansible.builtin.unarchive:
+    src: '{{ repositories.prometheus.base_url }}/v{{ software_versions.prometheus }}/prometheus-{{ software_versions.prometheus }}.{{ repositories.prometheus.architecture }}.tar.gz'
+    dest: /tmp/
+    remote_src: true
+
+- name: Copy prometheus file to bin
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-{{ software_versions.prometheus }}.{{ repositories.prometheus.architecture }}/prometheus"
+    dest: "{{ paths.bin_dir }}/prometheus"
+    owner: "{{ monitoring_server_userid }}"
+    group: "{{ monitoring_server_groupid }}"
+    remote_src: true
+    mode: '755'
+
+- name: Delete prometheus tmp folder
+  ansible.builtin.file:
+    path: '/tmp/prometheus-{{ software_versions.prometheus }}.{{ repositories.prometheus.architecture }}'
+    state: absent
+
+- name: Creates prometheus data directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ paths.data_dir }}/prometheus/"
+    state: directory
+    owner: "{{ monitoring_server_userid }}"
+    group: "{{ monitoring_server_groupid }}"
+    mode: '755'
+
+- name: Creates prometheus config directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ paths.config_dir }}/prometheus/"
+    state: directory
+    owner: "{{ monitoring_server_userid }}"
+    group: "{{ monitoring_server_groupid }}"
+    mode: '0755'
+
+- name: Display IP address
+  ansible.builtin.debug:
+    var: hostvars[inventory_hostname]['ansible_facts']['eth0']['ipv4']['address']
+- name: Display host
+  ansible.builtin.debug:
+    var: inventory_hostname
+
+- name: Create prometheus configuration file
+  become: true
+  ansible.builtin.template:
+    src: prometheus.conf.j2
+    dest: "{{ paths.config_dir }}/prometheus/prometheus.conf"
+    owner: root
+    group: root
+    mode: "644"
+
+- name: Copy systemd service file
+  become: true
+  ansible.builtin.template:
+    src: init.service.j2
+    dest: "{{ paths.systemd_dir }}/prometheus.service"
+    owner: root
+    group: root
+    mode: "644"
+  notify: systemd_reload
+
+- name: Start prometheus service
+  become: true
+  ansible.builtin.service:
+    name: prometheus
+    state: started
+    enabled: true
+
+- name: Check if prometheus is accessible
+  ansible.builtin.uri:
+    url: http://localhost:9090
+    method: GET
+    status_code: 200
+
+- name: Download Grafana
+  ansible.builtin.get_url:
+    url: '{{ repositories.grafana.base_url }}/grafana_{{ software_versions.grafana }}_{{ repositories.grafana.architecture }}.deb'
+    dest: /tmp/
+
+- name: 'Install Grafana'
+  become: true
+  ansible.builtin.apt:
+    deb: '/tmp/grafana_{{ software_versions.grafana }}_{{ repositories.grafana.architecture }}.deb'
+
+- name: Start Grafana service
+  become: true
+  ansible.builtin.service:
+    name: grafana-server
+    state: started
+    enabled: true

@@ -1,0 +1,86 @@
+---
+- name: Check if RPi Exporter is available for this architecture
+  ansible.builtin.fail:
+    msg: >-
+      RPi Exporter is only available for ARM architectures (ARM64, ARMv7, ARMv6).
+      Current architecture: {{ ansible_architecture }}.
+      Skipping RPi Exporter installation on x86_64 systems.
+  when:
+    - architecture_mapping[ansible_architecture].rpi_exporter == "NOT_AVAILABLE"
+    - ansible_architecture == "x86_64"
+
+- name: Display RPi Exporter skip message for x86_64
+  ansible.builtin.debug:
+    msg: "Skipping RPi Exporter installation - not available for {{ ansible_architecture }} architecture"
+  when: architecture_mapping[ansible_architecture].rpi_exporter == "NOT_AVAILABLE"
+
+- name: Creating RPi exporter user group
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"
+  become: true
+  ansible.builtin.group:
+    name: "{{ rpi_exporter_groupid }}"
+    state: present
+
+- name: Creating RPi exporter user
+  become: true
+  ansible.builtin.user:
+    name: "{{ rpi_exporter_userid }}"
+    group: "{{ rpi_exporter_groupid }}"
+    system: true
+    shell: "/sbin/nologin"
+    comment: "{{ rpi_exporter_userid }} nologin User"
+    createhome: "no"
+    state: present
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"
+
+- name: Install RPi Exporter
+  ansible.builtin.unarchive:
+    src: >-
+      {{ repositories.rpi_exporter.base_url }}/v{{ software_versions.rpi_exporter }}/
+      rpi_exporter-{{ software_versions.rpi_exporter }}.{{ repositories.rpi_exporter.architecture }}.tar.gz
+    dest: /tmp/
+    remote_src: true
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"
+
+- name: Copy RPi Exporter file to bin
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/rpi_exporter-{{ software_versions.rpi_exporter }}.{{ repositories.rpi_exporter.architecture }}/rpi_exporter"
+    dest: "{{ paths.bin_dir }}/rpi_exporter"
+    owner: "{{ rpi_exporter_userid }}"
+    group: "{{ rpi_exporter_groupid }}"
+    remote_src: true
+    mode: '755'
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"
+
+- name: Delete RPi Exporter tmp folder
+  ansible.builtin.file:
+    path: '/tmp/rpi_exporter-{{ software_versions.rpi_exporter }}.{{ repositories.rpi_exporter.architecture }}/rpi_exporter'
+    state: absent
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"
+
+- name: Copy systemd init file
+  become: true
+  ansible.builtin.template:
+    src: rpi_exporter.service.j2
+    dest: "{{ paths.systemd_dir }}/rpi_exporter.service"
+    owner: root
+    group: root
+    mode: "644"
+  notify: systemd_reload
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"
+
+- name: Start RPi Exporter service
+  become: true
+  ansible.builtin.service:
+    name: rpi_exporter
+    state: started
+    enabled: true
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"
+
+- name: Check if RPi exporter emits metrices
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9243/metrics
+    method: GET
+    status_code: 200
+  when: architecture_mapping[ansible_architecture].rpi_exporter != "NOT_AVAILABLE"

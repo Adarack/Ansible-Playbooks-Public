@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: jason
+  description: Install Docker CE and Docker Compose
+  company: "Personal"
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+    - name: Debian
+      versions:
+        - all
+  galaxy_tags:
+    - docker
+    - containerization
+
+dependencies: []

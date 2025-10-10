@@ -1,0 +1,61 @@
+- name: Creating node_exporter user group
+  become: true
+  ansible.builtin.group:
+    name: "{{ node_exporter_groupid }}"
+    state: present
+
+- name: Creating node_exporter user
+  become: true
+  ansible.builtin.user:
+    name: "{{ node_exporter_userid }}"
+    group: "{{ node_exporter_groupid }}"
+    system: true
+    shell: "/sbin/nologin"
+    comment: "{{ node_exporter_userid }} nologin User"
+    createhome: "no"
+    state: present
+
+- name: Install prometheus node exporter
+  ansible.builtin.unarchive:
+    src: >-
+      {{ repositories.node_exporter.base_url }}/v{{ software_versions.node_exporter }}/
+      node_exporter-{{ software_versions.node_exporter }}.{{ repositories.node_exporter.architecture }}.tar.gz
+    dest: /tmp/
+    remote_src: true
+
+- name: Copy prometheus node exporter file to bin
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/node_exporter-{{ software_versions.node_exporter }}.{{ repositories.node_exporter.architecture }}/node_exporter"
+    dest: "{{ paths.bin_dir }}/node_exporter"
+    owner: "{{ node_exporter_userid }}"
+    group: "{{ node_exporter_groupid }}"
+    remote_src: true
+    mode: "0755"
+
+- name: Delete node exporter tmp folder
+  ansible.builtin.file:
+    path: '/tmp/node_exporter-{{ software_versions.node_exporter }}.{{ repositories.node_exporter.architecture }}'
+    state: absent
+
+- name: Copy systemd init file
+  become: true
+  ansible.builtin.template:
+    src: 'init.service.j2'
+    dest: "{{ paths.systemd_dir }}/node_exporter.service"
+    owner: root
+    group: root
+    mode: "644"
+
+- name: Start node_exporter service
+  become: true
+  ansible.builtin.service:
+    name: node_exporter
+    state: started
+    enabled: true
+
+- name: Check if node exporter emits metrices
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9100/metrics
+    method: GET
+    status_code: 200

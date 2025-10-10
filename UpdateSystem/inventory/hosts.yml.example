@@ -1,0 +1,43 @@
+---
+# UpdateSystem Inventory Configuration - EXAMPLE
+# Copy this file to hosts.yml and customize with your actual hosts
+
+all_systems:
+  children:
+    debian_based:
+      hosts:
+        # Example Debian/Ubuntu hosts
+        # 10.10.2.50:  # debian-server-01
+        # 10.10.2.51:  # ubuntu-server-01
+      vars:
+        ansible_user: "pi"
+        ansible_ssh_private_key_file: "~/.ssh/pi_key"
+
+    redhat_based:
+      hosts:
+        # Example RHEL/CentOS/Fedora hosts
+        # 192.168.1.100:  # centos-server-01
+        # 192.168.1.101:  # fedora-workstation
+      vars:
+        ansible_user: "admin"
+        ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+    arch_based:
+      hosts:
+        # Example Arch Linux hosts
+        # 192.168.1.110:  # arch-server-01
+      vars:
+        ansible_user: "admin"
+        ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+    pihole_servers:
+      hosts:
+        # Pi-hole DNS servers
+        # 10.10.2.210:  # pihole-primary
+        # 10.10.2.211:  # pihole-secondary
+      vars:
+        ansible_user: "jason"
+        ansible_ssh_private_key_file: "~/.ssh/jason_key"
+        # Enable Pi-hole specific updates
+        pihole_update_enabled: true
+        pihole_update_gravity: true

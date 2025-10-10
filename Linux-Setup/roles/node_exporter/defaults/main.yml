@@ -1,0 +1,6 @@
+---
+# Node Exporter configuration
+node_exporter_servicename: "node_exporter"
+node_exporter_userid: "node_exporter"
+node_exporter_groupid: "node_exporter"
+node_exporter_exec_command: "{{ paths.bin_dir }}/node_exporter"

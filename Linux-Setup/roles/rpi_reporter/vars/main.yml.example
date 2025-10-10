@@ -1,0 +1,4 @@
+rpi_reporter_mqtt_host: "YOUR MQTT HOSTNAME OR IP"
+rpi_reporter_mqtt_port: "YOUR MQTT PORT"
+rpi_reporter_mqtt_username: "YOUR MQTT USER NAME"
+rpi_reporter_mqtt_password: "YOUR MQTT PASSWORD"

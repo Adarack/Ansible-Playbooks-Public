@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: jason
+  description: Install common packages and perform system updates
+  company: "Personal"
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+  galaxy_tags:
+    - system
+    - packages
+    - apt
+
+dependencies: []

@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: jason
+  description: Configure SSH daemon settings
+  company: "Personal"
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+  galaxy_tags:
+    - ssh
+    - security
+    - system
+
+dependencies: []
