@@ -1,5 +1,15 @@
 ---
+# Handlers for rpi_exporter role
+
 - name: Reload systemd
+  become: true
   ansible.builtin.systemd:
     daemon_reload: true
   listen: systemd_reload
+
+- name: Restart rpi_exporter
+  become: true
+  ansible.builtin.systemd:
+    name: rpi_exporter
+    state: restarted
+    daemon_reload: true

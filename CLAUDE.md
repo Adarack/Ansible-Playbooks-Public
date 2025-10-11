@@ -9,6 +9,16 @@ This is a collection of Ansible playbook projects for infrastructure automation 
 **Current Projects:**
 - **Linux-Setup**: Multi-platform Linux system configuration (primary reference template)
 - **UpdateSystem**: System and Pi-hole update automation across all platforms
+- **k3s-cluster**: K3s Kubernetes cluster deployment and management
+- **wyoming-satellite**: Wyoming Satellite voice assistant setup for Home Assistant
+
+**Repository Root Files:**
+- `CLAUDE.md` - This file; repository-level guidance for AI assistance
+- `README.md` - User-facing documentation with quick start
+- `SECURITY.md` - Security policy and vulnerability reporting
+- `PRE_COMMIT_CHECKLIST.md` - Detailed security checklist before commits
+- `verify-security.sh` - Automated security verification script
+- `.gitignore` - Repository-wide ignore patterns
 
 ## Repository Structure
 
@@ -185,6 +195,19 @@ ansible-inventory -i inventory/hosts.yml --list
 
 # List specific group
 ansible-inventory -i inventory/hosts.yml --graph groupname
+```
+
+### Security Verification
+```bash
+# Run automated security check (from repository root)
+./verify-security.sh
+
+# This checks for:
+# - Hardcoded passwords
+# - Vault password files
+# - SSH private keys
+# - Accidentally tracked sensitive files
+# - Sensitive files staged for commit
 ```
 
 ### Variable Management
@@ -445,6 +468,44 @@ ansible-inventory -i inventory/hosts.yml --host 10.10.2.220
 9. **Multi-Dimensional Inventory**: Hosts belong to multiple groups for flexible targeting
 10. **Shared Inventory Structure**: All playbooks use the same inventory organization pattern
 
+## Pre-Commit Security Workflow
+
+**CRITICAL**: Before committing or pushing changes, especially when working with new playbooks:
+
+### 1. Verify Sensitive File Protection
+```bash
+# Ensure .gitignore exists in playbook directory
+test -f .gitignore && echo "✓ .gitignore exists" || echo "✗ MISSING .gitignore"
+
+# Check that sensitive files are properly ignored
+git check-ignore -v group_vars/all.yml inventory/hosts.yml
+```
+
+### 2. Run Security Verification
+```bash
+# From repository root
+./verify-security.sh
+```
+
+### 3. Manual Review Before Commit
+```bash
+# Review what will be committed
+git status
+git diff --cached
+
+# Search for potential credentials
+grep -r "password.*=" --include="*.yml" --exclude="*.example" --exclude-dir=".git" | grep -v "TODO"
+```
+
+### 4. Maintain Example Files
+**Rule**: Whenever you modify `inventory/hosts.yml` or `group_vars/all.yml`, you **MUST** update the corresponding `.example` files:
+
+```bash
+# After editing actual config, update sanitized example
+cp group_vars/all.yml group_vars/all.yml.example
+# Then manually sanitize: replace passwords with "CHANGE_ME", IPs with examples
+```
+
 ## Best Practices for AI Assistance
 
 When working with these playbooks:
@@ -459,4 +520,5 @@ When working with these playbooks:
 8. **Mark security TODOs** - add `# TODO: Use ansible-vault` for plaintext credentials
 9. **Use multi-dimensional inventory** - organize hosts by OS, purpose, and features for flexible targeting
 10. **Keep inventory consistent** - all playbooks share the same inventory structure pattern
-- to memorize
+11. **Run security checks** - always run `./verify-security.sh` before suggesting git commits
+12. **Maintain example files** - update `.example` files when modifying actual configs

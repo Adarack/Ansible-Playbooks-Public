@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: jason
+  author: your_name
   description: Configure system timezone and NTP settings
   company: "Personal"
   license: MIT

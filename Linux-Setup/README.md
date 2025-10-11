@@ -127,9 +127,9 @@ Define users in `group_vars/all.yml`:
 
 ```yaml
 users_list:
-  - name: jason
+  - name: your_username
     groups: "sudo,docker"
-    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... jason@hostname"
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... your_username@hostname"
     sudo_access: true
 
   - name: developer
@@ -145,7 +145,7 @@ For `rpi_reporter` and monitoring roles:
 mqtt_config:
   host: "10.10.2.32"
   port: 1883
-  username: "hass"
+  username: "mqtt_user"
   password: "your_password"  # TODO: Use ansible-vault
   discovery_prefix: "homeassistant"
   base_topic: "home/nodes"

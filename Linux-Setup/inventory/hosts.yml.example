@@ -1,55 +1,163 @@
 # EXAMPLE INVENTORY - Copy to hosts.yml and customize with your actual IPs
 # DO NOT commit real IP addresses or hostnames to version control
+#
+# This inventory uses a multi-dimensional structure where hosts can belong
+# to multiple groups: OS family, purpose, and features
 
-linux:
+---
+all:
   children:
-    debian:
+    # =========================================================================
+    # OS FAMILY GROUPS - Based on package manager and distribution
+    # =========================================================================
+    debian_based:
       children:
-        newpi:
-          children:
-            pi:
-              hosts:
-                192.168.1.100:  # EXAMPLE-NEW-PI-01
-                # 192.168.1.101:  # EXAMPLE-NEW-PI-02
-              vars:
-                ansible_user: "pi"
-                ansible_ssh_private_key_file: "~/.ssh/pi_key"
+        raspberry_pi:
+          hosts:
+            192.168.1.10:   # EXAMPLE-NTP-PI
+            192.168.1.20:   # EXAMPLE-MONITORING-PI
+            192.168.1.30:   # EXAMPLE-KUBE-CP-01
+            192.168.1.31:   # EXAMPLE-KUBE-CP-02
+            192.168.1.32:   # EXAMPLE-KUBE-CP-03
+            192.168.1.40:   # EXAMPLE-KUBE-WK-01
+            192.168.1.41:   # EXAMPLE-KUBE-WK-02
 
-        rpi:
-          children:
-            pi:
-              hosts:
-                # Example production Pi devices
-                # 192.168.1.10:   # EXAMPLE-PRODUCTION-PI-01
-                # 192.168.1.11:   # EXAMPLE-PRODUCTION-PI-02
-                # 192.168.1.12:   # EXAMPLE-NTP-PI
-                # 192.168.1.20:   # EXAMPLE-MESH-PI-01
-                # 192.168.1.21:   # EXAMPLE-MESH-PI-02
-                # 192.168.1.30:   # EXAMPLE-KUBE-CP-01
-                # 192.168.1.31:   # EXAMPLE-KUBE-CP-02
-                # 192.168.1.32:   # EXAMPLE-KUBE-CP-03
-                # 192.168.1.40:   # EXAMPLE-KUBE-WK-01
-                # 192.168.1.41:   # EXAMPLE-KUBE-WK-02
-                # 192.168.1.42:   # EXAMPLE-KUBE-WK-03
-              vars:
-                ansible_user: "pi"
-                ansible_ssh_private_key_file: "~/.ssh/pi_key"
+        ubuntu_baremetal:
+          hosts:
+            # 192.168.1.100:  # EXAMPLE-UBUNTU-SERVER-01
 
-            # Example: Additional user group
-            # admin_user:
-            #   hosts:
-            #     192.168.1.50:  # EXAMPLE-ADMIN-PI-01
-            #     192.168.1.51:  # EXAMPLE-ADMIN-PI-02
-            #   vars:
-            #     ansible_user: "your_username"
-            #     ansible_ssh_private_key_file: "~/.ssh/your_username_key"
+        ubuntu_vm:
+          hosts:
+            # 192.168.1.101:  # EXAMPLE-UBUNTU-VM-01
 
-            # Example: Service-specific group
-            # pihole:
-            #   hosts:
-            #     192.168.1.60:  # EXAMPLE-PIHOLE-01
-            #     192.168.1.61:  # EXAMPLE-PIHOLE-02
-            #   vars:
-            #     ansible_user: "your_username"
-            #     ansible_ssh_private_key_file: "~/.ssh/your_username_key"
-            #     pihole_enabled: "true"
+        debian_baremetal:
+          hosts:
+            # 192.168.1.110:  # EXAMPLE-DEBIAN-SERVER-01
+
+        debian_vm:
+          hosts:
+            # 192.168.1.111:  # EXAMPLE-DEBIAN-VM-01
+
+    redhat_based:
+      children:
+        centos_baremetal:
+          hosts:
+            # 192.168.1.200:  # EXAMPLE-CENTOS-SERVER-01
+
+        centos_vm:
+          hosts:
+            # 192.168.1.201:  # EXAMPLE-CENTOS-VM-01
+
+        fedora_baremetal:
+          hosts:
+            # 192.168.1.210:  # EXAMPLE-FEDORA-WS-01
+
+        fedora_vm:
+          hosts:
+            # 192.168.1.211:  # EXAMPLE-FEDORA-VM-01
+
+    arch_based:
+      children:
+        arch_baremetal:
+          hosts:
+            # 192.168.1.230:  # EXAMPLE-ARCH-SERVER-01
+
+        arch_vm:
+          hosts:
+            # 192.168.1.231:  # EXAMPLE-ARCH-VM-01
+
+    # =========================================================================
+    # HARDWARE TYPE GROUPS - Based on physical platform
+    # =========================================================================
+    vm_hardware:
+      children:
+        ubuntu_vm:
+        debian_vm:
+        centos_vm:
+        fedora_vm:
+        arch_vm:
+
+    # =========================================================================
+    # PURPOSE GROUPS - Based on primary function
+    # =========================================================================
+    monitoring_servers:
+      hosts:
+        192.168.1.20:   # EXAMPLE-MONITORING-PI (Prometheus + Grafana)
+
+    ntp:
+      hosts:
+        192.168.1.10:   # EXAMPLE-NTP-PI
+
+    pihole:
+      hosts:
+        # 192.168.1.60:  # EXAMPLE-PIHOLE-01
+        # 192.168.1.61:  # EXAMPLE-PIHOLE-02
+
+    k3s:
+      children:
+        control:
+          hosts:
+            192.168.1.30:  # EXAMPLE-KUBE-CP-01
+            192.168.1.31:  # EXAMPLE-KUBE-CP-02
+            192.168.1.32:  # EXAMPLE-KUBE-CP-03
+
+        worker:
+          hosts:
+            192.168.1.40:  # EXAMPLE-KUBE-WK-01
+            192.168.1.41:  # EXAMPLE-KUBE-WK-02
+
+    # =========================================================================
+    # FEATURE GROUPS - Based on required features/capabilities
+    # =========================================================================
+    uctronics:
+      hosts:
+        # Raspberry Pi hosts with Uctronics OLED displays
+        # 192.168.1.30:  # EXAMPLE-KUBE-CP-01
+
+  # =========================================================================
+  # GROUP VARIABLES - Apply to specific host groups
+  # =========================================================================
+  vars:
+    # Default for all hosts
+    ansible_python_interpreter: /usr/bin/python3
+
+# Host-specific connection settings
+raspberry_pi:
+  vars:
+    ansible_user: "pi"
+    ansible_ssh_private_key_file: "~/.ssh/pi_key"
+
+ubuntu_baremetal:
+  vars:
+    ansible_user: "your_username"
+    ansible_ssh_private_key_file: "~/.ssh/your_username_key"
+
+ubuntu_vm:
+  vars:
+    ansible_user: "your_username"
+    ansible_ssh_private_key_file: "~/.ssh/your_username_key"
+
+debian_baremetal:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+debian_vm:
+  vars:
+    ansible_user: "your_username"
+    ansible_ssh_private_key_file: "~/.ssh/your_username_key"
+
+centos_baremetal:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+fedora_baremetal:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+arch_baremetal:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"

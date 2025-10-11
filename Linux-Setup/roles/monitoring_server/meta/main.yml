@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: jason
+  author: your_name
   description: Install and configure Prometheus and Grafana monitoring stack
   company: "Personal"
   license: MIT

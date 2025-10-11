@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: jason
+  author: your_name
   description: Install and configure MQTT reporter service for Raspberry Pi
   company: "Personal"
   license: MIT

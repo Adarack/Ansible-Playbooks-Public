@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: jason
+  author: your_name
   description: Manage multiple system users with SSH keys and sudo configuration
   company: "Personal"
   license: MIT

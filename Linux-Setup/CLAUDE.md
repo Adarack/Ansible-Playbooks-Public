@@ -135,9 +135,9 @@ The `users` role provides fully centralized user management through the `users_l
 Example configuration:
 ```yaml
 users_list:
-  - name: jason
+  - name: your_username
     groups: "adm,dialout,cdrom,sudo,audio,video,plugdev,games,users,input,render,netdev,gpio,i2c,spi,docker"
-    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... jason@hostname"
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQAB... your_username@hostname"
     sudo_access: true
 
   - name: developer
@@ -165,7 +165,7 @@ software_versions:
 mqtt_config:
   host: "10.10.2.32"
   port: 1883
-  username: "hass"
+  username: "mqtt_user"
   password: "encrypted_password"  # Use ansible-vault
   discovery_prefix: "homeassistant"
   base_topic: "home/nodes"

@@ -145,3 +145,22 @@ services:
   data_retention: "2d"
   restart_policy: "always"
   enable_on_boot: true
+
+# Architecture mapping for multi-platform binary downloads
+# Maps ansible_architecture to platform-specific binary naming conventions
+architecture_mapping:
+  "x86_64":
+    node_exporter: "linux-amd64"
+    prometheus: "linux-amd64"
+    grafana: "amd64"
+    rpi_exporter: "NOT_AVAILABLE"  # RPi Exporter is ARM-only
+  "aarch64":
+    node_exporter: "linux-arm64"
+    prometheus: "linux-arm64"
+    grafana: "arm64"
+    rpi_exporter: "linux-arm64"
+  "armv7l":
+    node_exporter: "linux-armv7"
+    prometheus: "linux-armv7"
+    grafana: "armv7"
+    rpi_exporter: "linux-armv7"

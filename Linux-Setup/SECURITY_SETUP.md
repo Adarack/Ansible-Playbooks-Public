@@ -53,11 +53,11 @@ Replace the plaintext passwords in `group_vars/all.yml` with the encrypted versi
 ```bash
 # Generate SSH keys for each user type
 ssh-keygen -t ed25519 -f ~/.ssh/pi_key -C "pi@raspberry-infrastructure"
-ssh-keygen -t ed25519 -f ~/.ssh/jason_key -C "jason@raspberry-infrastructure"
+ssh-keygen -t ed25519 -f ~/.ssh/your_username_key -C "your_username@raspberry-infrastructure"
 
 # Copy public keys to group_vars/all.yml users_list
 cat ~/.ssh/pi_key.pub
-cat ~/.ssh/jason_key.pub
+cat ~/.ssh/your_username_key.pub
 ```
 
 ### 4. Inventory Configuration

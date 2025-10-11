@@ -4,3 +4,22 @@ node_exporter_servicename: "node_exporter"
 node_exporter_userid: "node_exporter"
 node_exporter_groupid: "node_exporter"
 node_exporter_exec_command: "{{ paths.bin_dir }}/node_exporter"
+
+# Port configuration
+node_exporter_port: 9100
+
+# Textfile collector directory (for custom metrics)
+node_exporter_textfile_dir: "/var/lib/node_exporter"
+node_exporter_enable_textfile_collector: true
+
+# Enabled collectors (leave empty for defaults)
+# Examples: systemd, processes, interrupts, tcpstat, supervisord
+node_exporter_enabled_collectors: []
+
+# Disabled collectors (useful to reduce cardinality)
+# Examples: arp, bcache, bonding, btrfs, conntrack
+node_exporter_disabled_collectors: []
+
+# Additional CLI arguments
+# Example: "--log.level=info --log.format=logfmt"
+node_exporter_extra_args: ""

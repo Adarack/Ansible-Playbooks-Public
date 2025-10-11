@@ -1,4 +1,17 @@
 ---
 # RPi Exporter configuration
+rpi_exporter_servicename: "rpi_exporter"
 rpi_exporter_userid: "rpi_exporter"
 rpi_exporter_groupid: "rpi_exporter"
+rpi_exporter_exec_command: "{{ paths.bin_dir }}/rpi_exporter"
+
+# Port configuration
+rpi_exporter_port: 9243
+
+# Additional CLI arguments
+# Example: "--log.level=debug --log.format=json"
+rpi_exporter_extra_args: ""
+
+# Video group access (required for GPU temperature monitoring)
+# The exporter user needs to be in the 'video' group to read GPU metrics
+rpi_exporter_video_group_access: true

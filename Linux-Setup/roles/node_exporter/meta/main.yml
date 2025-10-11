@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: jason
+  author: your_name
   description: Install and configure Prometheus Node Exporter for system metrics
   company: "Personal"
   license: MIT

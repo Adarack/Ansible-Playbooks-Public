@@ -1,9 +1,15 @@
-- name: Restart the Prometheus service
-  service:
-    name: prometheus
-    state: restarted
-  listen: event_restart_prometheus
+---
+# Handlers for monitoring_server role
 
 - name: Reload systemd
-  command: systemctl daemon-reload
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
   listen: systemd_reload
+
+- name: Restart prometheus
+  become: true
+  ansible.builtin.systemd:
+    name: prometheus
+    state: restarted
+    daemon_reload: true

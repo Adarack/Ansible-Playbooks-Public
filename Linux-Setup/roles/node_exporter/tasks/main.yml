@@ -1,3 +1,28 @@
+- name: Set architecture-specific binary name
+  ansible.builtin.set_fact:
+    node_exporter_arch: "{{ architecture_mapping[ansible_architecture].node_exporter | default(repositories.node_exporter.architecture) }}"
+  when: architecture_mapping is defined and ansible_architecture in architecture_mapping
+
+- name: Use default architecture if mapping not available
+  ansible.builtin.set_fact:
+    node_exporter_arch: "{{ repositories.node_exporter.architecture }}"
+  when: architecture_mapping is not defined or ansible_architecture not in architecture_mapping
+
+- name: Build CLI arguments
+  ansible.builtin.set_fact:
+    node_exporter_cli_args: >-
+      --web.listen-address=:{{ node_exporter_port }}
+      {% if node_exporter_enable_textfile_collector %}
+      --collector.textfile.directory={{ node_exporter_textfile_dir }}
+      {% endif %}
+      {% for collector in node_exporter_enabled_collectors %}
+      --collector.{{ collector }}
+      {% endfor %}
+      {% for collector in node_exporter_disabled_collectors %}
+      --no-collector.{{ collector }}
+      {% endfor %}
+      {{ node_exporter_extra_args }}
+
 - name: Creating node_exporter user group
   become: true
   ansible.builtin.group:
@@ -15,27 +40,38 @@
     createhome: "no"
     state: present
 
+- name: Create textfile collector directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ node_exporter_textfile_dir }}"
+    state: directory
+    owner: "{{ node_exporter_userid }}"
+    group: "{{ node_exporter_groupid }}"
+    mode: "0755"
+  when: node_exporter_enable_textfile_collector
+
 - name: Install prometheus node exporter
   ansible.builtin.unarchive:
     src: >-
       {{ repositories.node_exporter.base_url }}/v{{ software_versions.node_exporter }}/
-      node_exporter-{{ software_versions.node_exporter }}.{{ repositories.node_exporter.architecture }}.tar.gz
+      node_exporter-{{ software_versions.node_exporter }}.{{ node_exporter_arch }}.tar.gz
     dest: /tmp/
     remote_src: true
 
 - name: Copy prometheus node exporter file to bin
   become: true
   ansible.builtin.copy:
-    src: "/tmp/node_exporter-{{ software_versions.node_exporter }}.{{ repositories.node_exporter.architecture }}/node_exporter"
+    src: "/tmp/node_exporter-{{ software_versions.node_exporter }}.{{ node_exporter_arch }}/node_exporter"
     dest: "{{ paths.bin_dir }}/node_exporter"
     owner: "{{ node_exporter_userid }}"
     group: "{{ node_exporter_groupid }}"
     remote_src: true
     mode: "0755"
+  notify: Restart node_exporter
 
 - name: Delete node exporter tmp folder
   ansible.builtin.file:
-    path: '/tmp/node_exporter-{{ software_versions.node_exporter }}.{{ repositories.node_exporter.architecture }}'
+    path: '/tmp/node_exporter-{{ software_versions.node_exporter }}.{{ node_exporter_arch }}'
     state: absent
 
 - name: Copy systemd init file
@@ -45,7 +81,13 @@
     dest: "{{ paths.systemd_dir }}/node_exporter.service"
     owner: root
     group: root
-    mode: "644"
+    mode: "0644"
+  notify: Restart node_exporter
+
+- name: Reload systemd daemon
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
 
 - name: Start node_exporter service
   become: true
@@ -54,8 +96,14 @@
     state: started
     enabled: true
 
-- name: Check if node exporter emits metrices
+- name: Wait for node_exporter to be ready
+  ansible.builtin.wait_for:
+    port: "{{ node_exporter_port }}"
+    delay: 2
+    timeout: 30
+
+- name: Check if node exporter emits metrics
   ansible.builtin.uri:
-    url: http://127.0.0.1:9100/metrics
+    url: "http://127.0.0.1:{{ node_exporter_port }}/metrics"
     method: GET
     status_code: 200

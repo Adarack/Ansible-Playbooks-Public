@@ -1,15 +1,39 @@
 ---
-- name: 'Install packages'
+- name: Set architecture-specific binary name for Prometheus
+  ansible.builtin.set_fact:
+    monitoring_server_prometheus_arch: "{{ architecture_mapping[ansible_architecture].prometheus | default(repositories.prometheus.architecture) }}"
+  when: architecture_mapping is defined and ansible_architecture in architecture_mapping
+
+- name: Use default architecture if mapping not available
+  ansible.builtin.set_fact:
+    monitoring_server_prometheus_arch: "{{ repositories.prometheus.architecture }}"
+  when: architecture_mapping is not defined or ansible_architecture not in architecture_mapping
+
+- name: Set architecture-specific binary name for Grafana
+  ansible.builtin.set_fact:
+    monitoring_server_grafana_arch: "{{ architecture_mapping[ansible_architecture].grafana | default(repositories.grafana.architecture) }}"
+  when: architecture_mapping is defined and ansible_architecture in architecture_mapping
+
+- name: Use default Grafana architecture if mapping not available
+  ansible.builtin.set_fact:
+    monitoring_server_grafana_arch: "{{ repositories.grafana.architecture }}"
+  when: architecture_mapping is not defined or ansible_architecture not in architecture_mapping
+
+- name: Install required packages (Debian-based)
   become: true
   ansible.builtin.apt:
     pkg:
       - adduser
       - libfontconfig1
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
 
 - name: Creating prometheus user group
   become: true
   ansible.builtin.group:
     name: "{{ monitoring_server_groupid }}"
+    state: present
 
 - name: Creating prometheus user
   become: true
@@ -24,23 +48,36 @@
 
 - name: Install prometheus
   ansible.builtin.unarchive:
-    src: '{{ repositories.prometheus.base_url }}/v{{ software_versions.prometheus }}/prometheus-{{ software_versions.prometheus }}.{{ repositories.prometheus.architecture }}.tar.gz'
+    src: >-
+      {{ repositories.prometheus.base_url }}/v{{ software_versions.prometheus }}/
+      prometheus-{{ software_versions.prometheus }}.{{ monitoring_server_prometheus_arch }}.tar.gz
     dest: /tmp/
     remote_src: true
 
 - name: Copy prometheus file to bin
   become: true
   ansible.builtin.copy:
-    src: "/tmp/prometheus-{{ software_versions.prometheus }}.{{ repositories.prometheus.architecture }}/prometheus"
+    src: "/tmp/prometheus-{{ software_versions.prometheus }}.{{ monitoring_server_prometheus_arch }}/prometheus"
     dest: "{{ paths.bin_dir }}/prometheus"
     owner: "{{ monitoring_server_userid }}"
     group: "{{ monitoring_server_groupid }}"
     remote_src: true
-    mode: '755'
+    mode: "0755"
+  notify: Restart prometheus
+
+- name: Copy promtool file to bin
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-{{ software_versions.prometheus }}.{{ monitoring_server_prometheus_arch }}/promtool"
+    dest: "{{ paths.bin_dir }}/promtool"
+    owner: "{{ monitoring_server_userid }}"
+    group: "{{ monitoring_server_groupid }}"
+    remote_src: true
+    mode: "0755"
 
 - name: Delete prometheus tmp folder
   ansible.builtin.file:
-    path: '/tmp/prometheus-{{ software_versions.prometheus }}.{{ repositories.prometheus.architecture }}'
+    path: '/tmp/prometheus-{{ software_versions.prometheus }}.{{ monitoring_server_prometheus_arch }}'
     state: absent
 
 - name: Creates prometheus data directory
@@ -61,21 +98,16 @@
     group: "{{ monitoring_server_groupid }}"
     mode: '0755'
 
-- name: Display IP address
-  ansible.builtin.debug:
-    var: hostvars[inventory_hostname]['ansible_facts']['eth0']['ipv4']['address']
-- name: Display host
-  ansible.builtin.debug:
-    var: inventory_hostname
-
 - name: Create prometheus configuration file
   become: true
   ansible.builtin.template:
     src: prometheus.conf.j2
-    dest: "{{ paths.config_dir }}/prometheus/prometheus.conf"
-    owner: root
-    group: root
-    mode: "644"
+    dest: "{{ paths.config_dir }}/prometheus/prometheus.yml"
+    owner: "{{ monitoring_server_userid }}"
+    group: "{{ monitoring_server_groupid }}"
+    mode: "0644"
+    validate: "{{ paths.bin_dir }}/promtool check config %s"
+  notify: Restart prometheus
 
 - name: Copy systemd service file
   become: true
@@ -84,8 +116,15 @@
     dest: "{{ paths.systemd_dir }}/prometheus.service"
     owner: root
     group: root
-    mode: "644"
-  notify: systemd_reload
+    mode: "0644"
+  notify:
+    - systemd_reload
+    - Restart prometheus
+
+- name: Reload systemd daemon
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
 
 - name: Start prometheus service
   become: true
@@ -94,21 +133,31 @@
     state: started
     enabled: true
 
+- name: Wait for Prometheus to be ready
+  ansible.builtin.wait_for:
+    port: 9090
+    delay: 2
+    timeout: 30
+
 - name: Check if prometheus is accessible
   ansible.builtin.uri:
     url: http://localhost:9090
     method: GET
     status_code: 200
 
-- name: Download Grafana
+- name: Download Grafana (Debian-based)
   ansible.builtin.get_url:
-    url: '{{ repositories.grafana.base_url }}/grafana_{{ software_versions.grafana }}_{{ repositories.grafana.architecture }}.deb'
-    dest: /tmp/
+    url: '{{ repositories.grafana.base_url }}/grafana_{{ software_versions.grafana }}_{{ monitoring_server_grafana_arch }}.deb'
+    dest: '/tmp/grafana_{{ software_versions.grafana }}_{{ monitoring_server_grafana_arch }}.deb'
+    mode: "0644"
+  when: ansible_os_family == "Debian"
 
-- name: 'Install Grafana'
+- name: Install Grafana (Debian-based)
   become: true
   ansible.builtin.apt:
-    deb: '/tmp/grafana_{{ software_versions.grafana }}_{{ repositories.grafana.architecture }}.deb'
+    deb: '/tmp/grafana_{{ software_versions.grafana }}_{{ monitoring_server_grafana_arch }}.deb'
+    state: present
+  when: ansible_os_family == "Debian"
 
 - name: Start Grafana service
   become: true
@@ -116,3 +165,15 @@
     name: grafana-server
     state: started
     enabled: true
+
+- name: Wait for Grafana to be ready
+  ansible.builtin.wait_for:
+    port: 3000
+    delay: 2
+    timeout: 30
+
+- name: Check if Grafana is accessible
+  ansible.builtin.uri:
+    url: http://localhost:3000
+    method: GET
+    status_code: 200

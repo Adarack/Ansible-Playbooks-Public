@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: jason
+  author: your_name
   description: Install and configure Raspberry Pi hardware metrics exporter
   company: "Personal"
   license: MIT

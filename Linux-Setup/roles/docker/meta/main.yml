@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  author: jason
+  author: your_name
   description: Install Docker CE and Docker Compose
   company: "Personal"
   license: MIT

@@ -3,5 +3,14 @@
 monitoring_server_servicename: "prometheus"
 monitoring_server_userid: "prometheus"
 monitoring_server_groupid: "prometheus"
-monitoring_server_exec_command: |
-  "{{ paths.bin_dir }}/prometheus --config.file={{ paths.config_dir }}/prometheus/prometheus.conf --storage.tsdb.path={{ paths.data_dir }}/prometheus --storage.tsdb.retention={{ services.data_retention }}"
+
+# Prometheus configuration
+monitoring_server_prometheus_port: 9090
+monitoring_server_prometheus_config_file: "{{ paths.config_dir }}/prometheus/prometheus.yml"
+monitoring_server_prometheus_data_dir: "{{ paths.data_dir }}/prometheus"
+monitoring_server_prometheus_retention_time: "{{ services.data_retention }}"
+
+# Grafana configuration
+monitoring_server_grafana_port: 3000
+monitoring_server_grafana_admin_user: "admin"
+monitoring_server_grafana_admin_password: "admin"  # TODO: Change on first login
