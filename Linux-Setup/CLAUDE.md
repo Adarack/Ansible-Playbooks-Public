@@ -252,7 +252,7 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 
 ### Multi-Group Membership Example
 
-Host `10.10.2.220` (Kube-Pi-CP01) belongs to:
+Host `10.10.2.220` (k3s-control-01) belongs to:
 - `debian_based` → `raspberry_pi` (OS/hardware)
 - `k3s` → `control` (K3s control plane)
 - `uctronics` (OLED display feature)

@@ -83,9 +83,9 @@ The role **automatically generates** Prometheus scrape targets from your invento
 - job_name: 'node'
   static_configs:
     - targets:
-        - '10.10.2.9:9100'    # NTP-PI
-        - '10.10.2.18:9100'   # DESKPI
-        - '10.10.2.50:9100'   # MESHTASTIC-PI-01
+        - '10.10.2.9:9100'    # host-01
+        - '10.10.2.18:9100'   # host-02
+        - '10.10.2.50:9100'   # host-03
         # ... all hosts from inventory
 ```
 
@@ -94,8 +94,8 @@ The role **automatically generates** Prometheus scrape targets from your invento
 - job_name: 'raspberry_pi'
   static_configs:
     - targets:
-        - '10.10.2.9:9243'    # NTP-PI
-        - '10.10.2.18:9243'   # DESKPI
+        - '10.10.2.9:9243'    # rpi-01
+        - '10.10.2.18:9243'   # rpi-02
         # ... all Raspberry Pi hosts
 ```
 

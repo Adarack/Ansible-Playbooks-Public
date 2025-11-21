@@ -36,9 +36,10 @@
 # Red Hat family package management
 - name: Update packages (RHEL/CentOS/Fedora)
   become: true
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name: "*"
-    state: latest
+    state: latest  # noqa: package-latest - Required for system updates
+    update_only: true
   when: ansible_os_family == "RedHat"
 
 - name: Install common packages (RHEL/CentOS/Fedora)

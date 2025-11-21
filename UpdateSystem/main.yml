@@ -19,14 +19,14 @@
 
     - name: Set PiKVM detection fact
       ansible.builtin.set_fact:
-        is_pikvm_system: "{{ pikvm_detect_early.rc == 0 }}"
+        pikvm_update_is_pikvm_system: "{{ pikvm_detect_early.rc == 0 }}"
 
     - name: Update all system packages
       ansible.builtin.import_role:
         name: system_update
       when:
         - role_enabled.system_update | default(true)
-        - not (is_pikvm_system | default(false))
+        - not (pikvm_update_is_pikvm_system | default(false))
 
     - name: Update Pi-hole (if installed)
       ansible.builtin.import_role:
