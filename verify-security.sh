@@ -28,25 +28,36 @@ print_status() {
         echo -e "${GREEN}✓${NC} $message"
     elif [ "$status" == "WARN" ]; then
         echo -e "${YELLOW}⚠${NC} $message"
-        ((WARNINGS++))
+        WARNINGS=$((WARNINGS + 1))
     else
         echo -e "${RED}✗${NC} $message"
-        ((ERRORS++))
+        ERRORS=$((ERRORS + 1))
     fi
 }
 
-# Check for known passwords
-echo "🔍 Checking for hardcoded passwords..."
-if grep -r "REDACTED" . --exclude-dir=.git --exclude="*.md" --exclude="verify-security.sh" >/dev/null 2>&1; then
-    print_status "ERROR" "Found hardcoded password 'REDACTED' in files!"
-else
-    print_status "OK" "No known test passwords found"
+# Check that real secrets from local (gitignored) config files don't appear in
+# any file git would commit. Secrets are read at runtime so they are never
+# written into this script.
+echo "🔍 Checking for real secrets in committable files..."
+SECRETS=$(grep -hE '^\s*[A-Za-z0-9_]*(password|passwd|token|secret)[A-Za-z0-9_]*:\s*\S' \
+    */group_vars/all.yml 2>/dev/null \
+    | grep -v '\$ANSIBLE_VAULT' \
+    | sed -E 's/^[^:]*:\s*//; s/\s+#.*$//; s/^["'"'"']//; s/["'"'"']$//' \
+    | grep -vE '^(CHANGE_ME|!vault.*|\{\{.*|)$' \
+    | awk 'length($0) >= 6' | sort -u || true)
+LEAKED=""
+if [ -n "$SECRETS" ]; then
+    while IFS= read -r f; do
+        [ -f "$f" ] || continue
+        if grep -qF -f <(printf '%s\n' "$SECRETS") -- "$f"; then
+            LEAKED="$LEAKED $f"
+        fi
+    done < <({ git ls-files; git ls-files --others --exclude-standard; } | sort -u)
 fi
-
-if grep -r "REDACTED" . --exclude-dir=.git --exclude="*.md" --exclude="verify-security.sh" >/dev/null 2>&1; then
-    print_status "ERROR" "Found hardcoded MQTT password in files!"
+if [ -n "$LEAKED" ]; then
+    print_status "ERROR" "Real secret values found in committable files:$LEAKED"
 else
-    print_status "OK" "No known MQTT passwords found"
+    print_status "OK" "No real secret values found in committable files"
 fi
 
 # Check for common password patterns
@@ -123,9 +134,9 @@ fi
 echo ""
 echo "🔍 Checking git status for potentially sensitive staged files..."
 STAGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
-if echo "$STAGED_FILES" | grep -q "group_vars/all.yml\|inventory/hosts.yml\|\.vault_pass"; then
+if echo "$STAGED_FILES" | grep -qE '(^|/)group_vars/all\.yml$|(^|/)inventory/hosts\.yml$|\.vault_pass'; then
     print_status "ERROR" "Sensitive files are staged for commit!"
-    echo "$STAGED_FILES" | grep "group_vars/all.yml\|inventory/hosts.yml\|\.vault_pass"
+    echo "$STAGED_FILES" | grep -E '(^|/)group_vars/all\.yml$|(^|/)inventory/hosts\.yml$|\.vault_pass'
 else
     print_status "OK" "No sensitive files staged for commit"
 fi

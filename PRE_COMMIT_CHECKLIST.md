@@ -192,8 +192,8 @@ Before `git push`:
 # Search for potential secrets before pushing
 cd /home/jason/Documents/ansible/ansible-wip
 grep -r "password.*=" --include="*.yml" --exclude="*.example" --exclude-dir=".git"
-grep -r "REDACTED" .
-grep -r "REDACTED" .
+# Checks committable files for the real secrets in your local group_vars/all.yml files
+./verify-security.sh
 ```
 
 ## 📝 Post-Commit Actions
