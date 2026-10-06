@@ -1,0 +1,17 @@
+---
+# Default variables for pihole_update role
+
+# Update Pi-hole components
+pihole_update_enabled: true
+
+# Update gravity (blocklists)
+pihole_update_gravity: true
+
+# Restart FTL service after update
+pihole_update_restart_ftl: false
+
+# Check Pi-hole status after update
+pihole_update_check_status: true
+
+# Path to the pihole command (used for detection)
+pihole_update_binary: /usr/local/bin/pihole

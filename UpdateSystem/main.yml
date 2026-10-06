@@ -1,43 +1,54 @@
 ---
-- name: System and Pi-hole Update Playbook
-  hosts: all
+# Hosts that must not all go down at once are updated one at a time:
+#   - Pi-hole servers (keep DNS up)
+#   - K3s nodes (keep etcd quorum; nodes are drained before any reboot)
+# Everything else is updated in parallel.
+
+- name: Update Pi-hole servers (one at a time)
+  hosts: pihole
+  gather_facts: true
+  become: true
+  serial: 1
+  max_fail_percentage: 0
+  tasks:
+    - name: Run update steps
+      ansible.builtin.import_tasks: tasks/update_host.yml
+
+- name: Update K3s nodes (one at a time)
+  hosts: k3s
+  gather_facts: true
+  become: true
+  serial: "{{ k3s_update_serial | default(1) }}"
+  max_fail_percentage: 0
+  tasks:
+    - name: Run update steps
+      ansible.builtin.import_tasks: tasks/update_host.yml
+
+- name: Update all other systems
+  hosts: all:!pihole:!k3s
   gather_facts: true
   become: true
   tasks:
-    - name: Display system information
+    - name: Run update steps
+      ansible.builtin.import_tasks: tasks/update_host.yml
+
+# Runs against `all` (not localhost) so it still runs under --limit;
+# debug with run_once never connects to the hosts
+- name: Update summary
+  hosts: all
+  strategy: linear  # required for run_once
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Display update summary
       ansible.builtin.debug:
-        msg:
-          - "Updating: {{ inventory_hostname }}"
-          - "System: {{ ansible_system }} {{ ansible_distribution }} {{ ansible_distribution_version }}"
-          - "Architecture: {{ ansible_architecture }}"
-
-    - name: Check if this is a PiKVM system (early detection)
-      ansible.builtin.command: which pikvm-update
-      register: pikvm_detect_early
-      changed_when: false
-      failed_when: false
-
-    - name: Set PiKVM detection fact
-      ansible.builtin.set_fact:
-        pikvm_update_is_pikvm_system: "{{ pikvm_detect_early.rc == 0 }}"
-
-    - name: Update all system packages
-      ansible.builtin.import_role:
-        name: system_update
-      when:
-        - role_enabled.system_update | default(true)
-        - not (pikvm_update_is_pikvm_system | default(false))
-
-    - name: Update Pi-hole (if installed)
-      ansible.builtin.import_role:
-        name: pihole_update
-      when: role_enabled.pihole_update | default(true)
-
-    - name: Update PiKVM (if detected)
-      ansible.builtin.import_role:
-        name: pikvm_update
-      when: role_enabled.pikvm_update | default(true)
-
-    - name: Display update completion
-      ansible.builtin.debug:
-        msg: "Update completed successfully on {{ inventory_hostname }}"
+        msg: >-
+          {{ item }}:
+          {{ hostvars[item].update_host_summary.packages }} package(s) pending before upgrade,
+          {{ 'changed' if hostvars[item].update_host_summary.changed else 'no changes' }},
+          {{ 'REBOOTED' if hostvars[item].update_host_summary.rebooted
+             else ('REBOOT NEEDED' if hostvars[item].update_host_summary.reboot_needed else 'no reboot needed') }}
+      loop: "{{ ansible_play_hosts_all }}"
+      when: hostvars[item].update_host_summary is defined
+      run_once: true  # noqa: run-once[task] - play strategy is pinned to linear
+      tags: always

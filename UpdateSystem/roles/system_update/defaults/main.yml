@@ -1,0 +1,44 @@
+---
+# Default variables for system_update role
+
+# Update package cache before upgrading
+system_update_cache: true
+
+# Skip the apt cache refresh if it was refreshed within this many seconds
+system_update_cache_valid_time: 3600
+
+# Seconds to wait for the dpkg/apt lock (e.g. held by unattended-upgrades)
+system_update_apt_lock_timeout: 300
+
+# Autoremove unused packages after update
+system_update_autoremove: true
+
+# Autoclean package cache after update
+system_update_autoclean: true
+
+# Reboot after updates if required (detected per distro family)
+system_update_reboot_if_required: false
+
+# Hosts in any of these groups are never rebooted automatically, even when
+# system_update_reboot_if_required is true (a warning is shown instead)
+system_update_reboot_excluded_groups: []
+
+# Reboot timeout in seconds
+system_update_reboot_timeout: 600
+
+# Update type for Debian-based systems: "dist" for dist-upgrade, "safe" for upgrade
+system_update_upgrade_type: "safe"
+
+# Pre-flight: minimum free space (MB) required before upgrading
+system_update_min_free_mb_root: 500
+system_update_min_free_mb_boot: 50
+system_update_boot_mounts:
+  - /boot
+  - /boot/firmware
+
+# K3s: drain the node before an automatic reboot and uncordon it afterwards
+system_update_k3s_drain: true
+system_update_k3s_group: k3s
+system_update_k3s_control_group: control
+system_update_k3s_node_name: "{{ ansible_facts['nodename'] | lower }}"
+system_update_k3s_drain_timeout: 300

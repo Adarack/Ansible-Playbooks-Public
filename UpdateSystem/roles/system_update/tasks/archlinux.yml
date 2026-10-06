@@ -1,0 +1,39 @@
+---
+# System package updates for Arch Linux family
+
+- name: Upgrade all packages (Arch Linux)
+  community.general.pacman:
+    update_cache: "{{ system_update_cache }}"
+    upgrade: true
+  register: system_update_pacman_result
+
+- name: Find orphaned packages (Arch Linux)
+  ansible.builtin.command: pacman -Qtdq
+  register: system_update_pacman_orphans
+  changed_when: false
+  # pacman -Qtdq exits 1 when there are no orphans
+  failed_when: system_update_pacman_orphans.rc not in [0, 1]
+  check_mode: false
+  when: system_update_autoremove
+
+- name: Remove orphaned packages (Arch Linux)
+  community.general.pacman:
+    name: "{{ system_update_pacman_orphans.stdout_lines }}"
+    state: absent
+    extra_args: --recursive
+  when:
+    - system_update_autoremove
+    - system_update_pacman_orphans.stdout_lines | default([]) | length > 0
+
+- name: Check whether the running kernel's modules are still installed (Arch Linux)
+  # Arch removes the old kernel's module directory on upgrade, so a missing
+  # directory means the running kernel was replaced and a reboot is needed
+  ansible.builtin.stat:
+    path: "/usr/lib/modules/{{ ansible_facts['kernel'] }}"
+  register: system_update_running_kernel_modules
+
+- name: Record update results (Arch Linux)
+  ansible.builtin.set_fact:
+    system_update_pending_packages: "{{ system_update_pacman_result.packages | default([]) }}"
+    system_update_changed: "{{ system_update_pacman_result is changed }}"
+    system_update_reboot_needed: "{{ not system_update_running_kernel_modules.stat.exists }}"

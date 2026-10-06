@@ -1,0 +1,51 @@
+---
+# PiKVM Update Role - Main Tasks
+# Updates PiKVM systems while managing read-only filesystem
+# NOTE: pikvm-update handles ALL system updates, not just PiKVM components
+# Detection (pikvm_update_is_pikvm_system) is done once by the calling playbook
+
+- name: Check if pikvm-os-updater is installed
+  ansible.builtin.command: pacman -Q pikvm-os-updater
+  register: pikvm_update_updater_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Update PiKVM with writable filesystem
+  block:
+    - name: Make filesystem writable (rw mode)
+      ansible.builtin.command: rw
+      changed_when: true
+
+    - name: Install pikvm-os-updater (if missing)
+      community.general.pacman:
+        name: pikvm-os-updater
+        state: "{{ 'latest' if pikvm_update_force_install_updater else 'present' }}"
+        update_cache: true
+      when: pikvm_update_updater_check.rc != 0 or pikvm_update_force_install_updater
+
+    - name: Run PiKVM update (handles ALL system updates)
+      ansible.builtin.command: pikvm-update
+      register: pikvm_update_result
+      changed_when: true
+      async: "{{ pikvm_update_timeout }}"
+      poll: 15
+
+    - name: Display update results
+      ansible.builtin.debug:
+        msg:
+          - "PiKVM update completed (includes all system updates)"
+          - "{{ pikvm_update_result.stdout_lines | default(['No output']) }}"
+
+  always:
+    - name: Remount filesystem as read-only (ro mode)
+      # Runs even if the update failed so the root filesystem is never left writable
+      ansible.builtin.command: ro
+      changed_when: true
+      failed_when: false
+
+- name: Reboot system after update
+  ansible.builtin.reboot:
+    reboot_timeout: "{{ pikvm_update_reboot_timeout }}"
+    msg: "Rebooting after PiKVM update"
+  when: pikvm_update_reboot_after

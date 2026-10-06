@@ -15,6 +15,7 @@ ansible_become_password: "CHANGE_ME"  # TODO: Replace with vault encrypted versi
 role_enabled:
   system_update: true      # Update all system packages
   pihole_update: true      # Update Pi-hole (if installed)
+  pikvm_update: true       # Update PiKVM (if detected)
 
 # =============================================================================
 # SYSTEM UPDATE CONFIGURATION
@@ -28,6 +29,21 @@ system_update_autoclean: true
 # Reboot configuration
 system_update_reboot_if_required: false  # Set to true to auto-reboot after updates
 system_update_reboot_timeout: 600        # Reboot timeout in seconds (10 minutes)
+
+# Never auto-reboot hosts in these groups (a warning is shown instead).
+# The Pangolin VPS carries every tunnel, so reboot it by hand.
+system_update_reboot_excluded_groups:
+  - vps
+
+# Pre-flight free-space requirements (MB)
+system_update_min_free_mb_root: 500
+system_update_min_free_mb_boot: 50
+
+# Seconds to wait for the apt/dpkg lock (e.g. held by unattended-upgrades)
+system_update_apt_lock_timeout: 300
+
+# K3s: drain nodes before an automatic reboot, uncordon afterwards
+system_update_k3s_drain: true
 
 # Update type for Debian/Ubuntu (safe or dist)
 # - "safe": Standard upgrade (apt upgrade)
@@ -47,3 +63,19 @@ pihole_update_check_status: true  # Check Pi-hole status after update
 # Pi-hole Serial Update Configuration (pihole_update_serial.yml)
 # Used for updating multiple Pi-hole servers one at a time with reboot
 pihole_update_delay_between_servers: 30  # Seconds to wait between servers (default: 30)
+
+# Serial playbook: reboot every Pi-hole even when no reboot is required
+pihole_update_serial_force_reboot: false
+# Domain queried against each Pi-hole to verify DNS after updating
+pihole_update_verify_domain: google.com
+
+# =============================================================================
+# PIKVM UPDATE CONFIGURATION
+# =============================================================================
+
+# PiKVM update settings (for systems with read-only filesystem)
+pikvm_update_enabled: true           # Update PiKVM components
+pikvm_update_reboot_after: false     # Reboot after update (recommended for kernel updates)
+pikvm_update_reboot_timeout: 300     # Reboot timeout in seconds (5 minutes)
+pikvm_update_timeout: 600            # Update operation timeout in seconds (10 minutes)
+pikvm_update_force_install_updater: false  # Install/upgrade pikvm-os-updater even if present

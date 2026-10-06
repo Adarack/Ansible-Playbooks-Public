@@ -1,0 +1,63 @@
+---
+# Check if Pi-hole is installed
+- name: Check if pihole command exists
+  ansible.builtin.stat:
+    path: "{{ pihole_update_binary }}"
+  register: pihole_update_command_check
+
+- name: Skip Pi-hole update if not installed
+  ansible.builtin.debug:
+    msg: "Pi-hole is not installed on {{ inventory_hostname }}, skipping update"
+  when: not pihole_update_command_check.stat.exists
+
+- name: Update Pi-hole
+  when: pihole_update_command_check.stat.exists
+  block:
+    # Update Pi-hole components
+    - name: Update Pi-hole components
+      ansible.builtin.command: pihole -up
+      when: pihole_update_enabled
+      register: pihole_update_result
+      changed_when: "'up to date' not in pihole_update_result.stdout"
+      failed_when:
+        - pihole_update_result.rc != 0
+        - "'already up to date' not in pihole_update_result.stdout"
+
+    - name: Display Pi-hole update result
+      ansible.builtin.debug:
+        msg: "{{ pihole_update_result.stdout_lines }}"
+      when: pihole_update_result is not skipped
+
+    # Update gravity database
+    - name: Update Pi-hole gravity (blocklists)
+      ansible.builtin.command: pihole -g
+      when: pihole_update_gravity
+      register: pihole_update_gravity_result
+      changed_when: "'Update complete' in pihole_update_gravity_result.stdout"
+
+    - name: Display gravity update result
+      ansible.builtin.debug:
+        msg: "Gravity database updated successfully on {{ inventory_hostname }}"
+      when:
+        - pihole_update_gravity_result is not skipped
+        - pihole_update_gravity_result.changed
+
+    # Restart FTL if requested
+    - name: Restart Pi-hole FTL service
+      ansible.builtin.systemd_service:
+        name: pihole-FTL
+        state: restarted
+      when: pihole_update_restart_ftl
+
+    # Check Pi-hole status
+    - name: Check Pi-hole status
+      ansible.builtin.command: pihole status
+      when: pihole_update_check_status
+      register: pihole_update_status_result
+      changed_when: false
+      check_mode: false
+
+    - name: Display Pi-hole status
+      ansible.builtin.debug:
+        msg: "{{ pihole_update_status_result.stdout_lines }}"
+      when: pihole_update_status_result is not skipped

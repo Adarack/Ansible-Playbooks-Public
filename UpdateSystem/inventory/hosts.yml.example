@@ -1,43 +1,226 @@
 ---
 # UpdateSystem Inventory Configuration - EXAMPLE
-# Copy this file to hosts.yml and customize with your actual hosts
+# Copy this file to hosts.yml, uncomment and replace the example hosts
+# Hosts can belong to multiple groups based on hardware, OS, purpose, and features
 
-all_systems:
+all:
   children:
+    # =========================================================================
+    # OS FAMILY GROUPS - Based on package manager and distribution
+    # =========================================================================
     debian_based:
-      hosts:
-        # Example Debian/Ubuntu hosts
-        # 10.10.2.50:  # debian-server-01
-        # 10.10.2.51:  # ubuntu-server-01
-      vars:
-        ansible_user: "pi"
-        ansible_ssh_private_key_file: "~/.ssh/pi_key"
+      children:
+        raspberry_pi:
+          hosts:
+            # 10.10.2.9:  # NTP-PI
+            # 10.10.2.18:  # DESKPI
+            # 10.10.2.50:  # MESHTASTIC-PI-01
+            # 10.10.2.8:  # Voron-24-ABS-Ethernet
+            # 10.10.2.28:  # VSATELLITE-01
+            # 10.10.2.62:  # VSATELLITE-02
+            # 10.10.2.220:  # Kube-Pi-CP01
+            # 10.10.2.221:  # Kube-Pi-CP02
+            # 10.10.2.222:  # Kube-Pi-CP03
+            # 10.10.2.223:  # Kube-Pi-WK01
+            # 10.10.2.224:  # Kube-Pi-WK02
+            # 10.10.2.225:  # Kube-Pi-WK03
+            # 10.10.2.226:  # Kube-Pi-WK04
+            # 10.10.2.227:  # Kube-Pi-WK05
+
+        ubuntu_baremetal:
+          hosts:
+            # 10.10.2.57:  # ZIGBEE-01
+
+        ubuntu_vm:
+          hosts:
+            # Add Ubuntu VMs here
+            # 192.168.1.102:  # ubuntu-vm-01
+            # 10.10.2.84:  # LAN-Ingress PVE10
+            # 203.0.113.10:  # DO-Docker-Ubuntu (cloud VPS)
+
+        debian_baremetal:
+          hosts:
+            # Add Debian servers here
+            # 192.168.1.110:  # debian-server-01
+
+        debian_vm:
+          hosts:
+            # Add Debian VMs here
+            # 192.168.1.112:  # debian-vm-01
 
     redhat_based:
-      hosts:
-        # Example RHEL/CentOS/Fedora hosts
-        # 192.168.1.100:  # centos-server-01
-        # 192.168.1.101:  # fedora-workstation
-      vars:
-        ansible_user: "admin"
-        ansible_ssh_private_key_file: "~/.ssh/admin_key"
+      children:
+        centos_baremetal:
+          hosts:
+            # Add CentOS/Rocky Linux servers here
+            # 192.168.1.200:  # centos-server-01
+
+        centos_vm:
+          hosts:
+            # Add CentOS/Rocky Linux VMs here
+            # 192.168.1.201:  # centos-vm-01
+
+        fedora_baremetal:
+          hosts:
+            # Add Fedora workstations here
+            # 192.168.1.210:  # fedora-ws-01
+
+        fedora_vm:
+          hosts:
+            # Add Fedora VMs here
+            # 192.168.1.211:  # fedora-vm-01
 
     arch_based:
-      hosts:
-        # Example Arch Linux hosts
-        # 192.168.1.110:  # arch-server-01
-      vars:
-        ansible_user: "admin"
-        ansible_ssh_private_key_file: "~/.ssh/admin_key"
+      children:
+        arch_baremetal:
+          hosts:
+            # 10.10.2.230:  # PIKVM-01
 
-    pihole_servers:
+        arch_vm:
+          hosts:
+            # Add Arch Linux VMs here
+            # 192.168.1.310:  # arch-vm-01
+
+    # =========================================================================
+    # HARDWARE TYPE GROUPS - Based on physical platform
+    # =========================================================================
+    vm_hardware:
+      children:
+        ubuntu_vm:
+        debian_vm:
+        centos_vm:
+        fedora_vm:
+        arch_vm:
+
+    # =========================================================================
+    # PURPOSE GROUPS - Based on primary function
+    # =========================================================================
+    ntp:
       hosts:
-        # Pi-hole DNS servers
-        # 10.10.2.210:  # pihole-primary
-        # 10.10.2.211:  # pihole-secondary
-      vars:
-        ansible_user: "jason"
-        ansible_ssh_private_key_file: "~/.ssh/jason_key"
-        # Enable Pi-hole specific updates
-        pihole_update_enabled: true
-        pihole_update_gravity: true
+        # 10.10.2.9:  # NTP-PI
+
+    deskpi:
+      hosts:
+        # 10.10.2.18:  # DESKPI
+
+    meshtastic:
+      hosts:
+        # 10.10.2.50:  # MESHTASTIC-PI-01
+
+    pihole:
+      hosts:
+        # 10.10.2.210:  # PiHole01-Orangepi
+        # 10.10.2.211:  # PiHole02-Orangepi
+
+    klipper:
+      hosts:
+        # 10.10.2.8:  # Voron-24-ABS-Ethernet
+
+    wyoming_satellite:
+      hosts:
+        # 10.10.2.28:  # VSATELLITE-01
+        # 10.10.2.62:  # VSATELLITE-02
+
+    zigbee:
+      hosts:
+        # 10.10.2.57:  # ZIGBEE-01
+
+    pikvm:
+      hosts:
+        # 10.10.2.230:  # PIKVM-01
+
+    vps:
+      hosts:
+        # 203.0.113.10:  # DO-Docker-Ubuntu (cloud VPS)
+
+    k3s:
+      children:
+        control:
+          hosts:
+            # 10.10.2.220:  # Kube-Pi-CP01
+            # 10.10.2.221:  # Kube-Pi-CP02
+            # 10.10.2.222:  # Kube-Pi-CP03
+
+        worker:
+          hosts:
+            # 10.10.2.223:  # Kube-Pi-WK01
+            # 10.10.2.224:  # Kube-Pi-WK02
+            # 10.10.2.225:  # Kube-Pi-WK03
+            # 10.10.2.226:  # Kube-Pi-WK04
+            # 10.10.2.227:  # Kube-Pi-WK05
+
+    # =========================================================================
+    # FEATURE GROUPS - Based on required features/capabilities
+    # =========================================================================
+    uctronics:
+      hosts:
+        # 10.10.2.220:  # Kube-Pi-CP01
+        # 10.10.2.221:  # Kube-Pi-CP02
+        # 10.10.2.222:  # Kube-Pi-CP03
+        # 10.10.2.223:  # Kube-Pi-WK01
+        # 10.10.2.224:  # Kube-Pi-WK02
+        # 10.10.2.225:  # Kube-Pi-WK03
+        # 10.10.2.226:  # Kube-Pi-WK04
+        # 10.10.2.227:  # Kube-Pi-WK05
+
+  # =========================================================================
+  # GROUP VARIABLES - Apply to specific host groups
+  # =========================================================================
+  vars:
+    # Default for all hosts
+    ansible_python_interpreter: /usr/bin/python3
+
+# Host-specific connection settings
+raspberry_pi:
+  vars:
+    ansible_user: "pi"
+    ansible_ssh_private_key_file: "~/.ssh/pi_key"
+
+pihole:
+  vars:
+    ansible_user: "jason"
+    ansible_ssh_private_key_file: "~/.ssh/jason_key"
+
+zigbee:
+  vars:
+    ansible_user: "jason"
+    ansible_ssh_private_key_file: "~/.ssh/jason_key"
+
+ubuntu_vm:
+  vars:
+    ansible_user: "jason"
+    ansible_ssh_private_key_file: "~/.ssh/jason_key"
+
+debian_baremetal:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+debian_vm:
+  vars:
+    ansible_user: "jason"
+    ansible_ssh_private_key_file: "~/.ssh/jason_key"
+
+centos_baremetal:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+fedora_baremetal:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"
+
+pikvm:
+  vars:
+    ansible_user: "root"
+    ansible_ssh_private_key_file: "~/.ssh/root_key"
+    # PiKVM uses read-only filesystem, need writable tmp location
+    ansible_remote_tmp: "/tmp/.ansible-root/tmp"
+    # Async job status files (pikvm-update runs async) must also live in /tmp
+    ansible_async_dir: "/tmp/.ansible-root/async"
+
+arch_vm:
+  vars:
+    ansible_user: "admin"
+    ansible_ssh_private_key_file: "~/.ssh/admin_key"

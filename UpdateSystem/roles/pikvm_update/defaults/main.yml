@@ -1,0 +1,16 @@
+---
+# PiKVM Update Role - Default Variables
+# All variables prefixed with pikvm_update_
+
+# Enable/disable PiKVM update
+pikvm_update_enabled: true
+
+# Reboot after update (recommended for kernel updates)
+pikvm_update_reboot_after: false
+pikvm_update_reboot_timeout: 300
+
+# Install/upgrade pikvm-os-updater to the latest version even if already installed
+pikvm_update_force_install_updater: false
+
+# Timeout for update operation (seconds)
+pikvm_update_timeout: 600

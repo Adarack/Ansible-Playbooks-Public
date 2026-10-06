@@ -1,0 +1,56 @@
+---
+# System package updates for Red Hat family (dnf / dnf5 / yum)
+
+- name: List available updates (RHEL/CentOS/Fedora)
+  ansible.builtin.command: "{{ ansible_facts['pkg_mgr'] }} check-update -q"
+  register: system_update_rpm_upgradable
+  changed_when: false
+  # check-update exits 100 when updates are available
+  failed_when: system_update_rpm_upgradable.rc not in [0, 100]
+  check_mode: false
+
+- name: Record pending packages (RHEL/CentOS/Fedora)
+  ansible.builtin.set_fact:
+    system_update_pending_packages: >-
+      {{ system_update_rpm_upgradable.stdout_lines
+         | select('match', '^\S+\.\S+\s+\S+\s+\S+')
+         | map('regex_replace', '\s.*$', '')
+         | list }}
+
+- name: Upgrade all packages (RHEL/CentOS/Fedora)
+  ansible.builtin.package:
+    name: "*"
+    state: latest  # noqa: package-latest
+  register: system_update_rpm_result
+
+- name: Autoremove unused packages (dnf)
+  ansible.builtin.dnf:
+    autoremove: true
+  when:
+    - system_update_autoremove
+    - ansible_facts['pkg_mgr'] == 'dnf'
+
+- name: Autoremove unused packages (dnf5)
+  ansible.builtin.dnf5:
+    autoremove: true
+  when:
+    - system_update_autoremove
+    - ansible_facts['pkg_mgr'] == 'dnf5'
+
+- name: Check if reboot is required (RHEL/CentOS/Fedora)
+  # needs-restarting (dnf-utils / yum-utils) exits 1 when a reboot is needed
+  ansible.builtin.command: needs-restarting -r
+  register: system_update_needs_restarting
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Warn if reboot status could not be determined (RHEL/CentOS/Fedora)
+  ansible.builtin.debug:
+    msg: "WARNING: needs-restarting is unavailable on {{ inventory_hostname }}; install dnf-utils to enable reboot detection"
+  when: system_update_needs_restarting.rc not in [0, 1]
+
+- name: Record update results (RHEL/CentOS/Fedora)
+  ansible.builtin.set_fact:
+    system_update_changed: "{{ system_update_rpm_result is changed }}"
+    system_update_reboot_needed: "{{ system_update_needs_restarting.rc == 1 }}"

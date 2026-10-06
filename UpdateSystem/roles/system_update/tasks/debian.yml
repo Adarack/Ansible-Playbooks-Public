@@ -1,0 +1,42 @@
+---
+# System package updates for Debian/Ubuntu family
+
+- name: Update apt cache (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: "{{ system_update_cache_valid_time }}"
+    lock_timeout: "{{ system_update_apt_lock_timeout }}"
+  when: system_update_cache
+  changed_when: false
+
+- name: List upgradable packages (Debian/Ubuntu)
+  ansible.builtin.command: apt list --upgradable
+  register: system_update_apt_upgradable
+  changed_when: false
+  check_mode: false
+
+- name: Record pending packages (Debian/Ubuntu)
+  ansible.builtin.set_fact:
+    system_update_pending_packages: >-
+      {{ system_update_apt_upgradable.stdout_lines
+         | select('search', '/')
+         | map('regex_replace', '/.*$', '')
+         | list }}
+
+- name: Upgrade all packages (Debian/Ubuntu)
+  ansible.builtin.apt:
+    upgrade: "{{ 'dist' if system_update_upgrade_type == 'dist' else 'safe' }}"
+    autoremove: "{{ system_update_autoremove }}"
+    autoclean: "{{ system_update_autoclean }}"
+    lock_timeout: "{{ system_update_apt_lock_timeout }}"
+  register: system_update_apt_result
+
+- name: Check if reboot is required (Debian/Ubuntu)
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: system_update_reboot_flag
+
+- name: Record update results (Debian/Ubuntu)
+  ansible.builtin.set_fact:
+    system_update_changed: "{{ system_update_apt_result is changed }}"
+    system_update_reboot_needed: "{{ system_update_reboot_flag.stat.exists }}"

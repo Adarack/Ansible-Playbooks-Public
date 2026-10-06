@@ -1,0 +1,18 @@
+---
+# Pre-flight checks - fail early instead of half-way through an upgrade
+
+- name: Check free disk space on / and boot partitions
+  ansible.builtin.assert:
+    that:
+      - (item.size_available | int) >= (system_update_preflight_min_mb | int) * 1048576
+    fail_msg: >-
+      Only {{ ((item.size_available | int) / 1048576) | int }} MB free on {{ item.mount }}
+      ({{ system_update_preflight_min_mb }} MB required) on {{ inventory_hostname }}
+    success_msg: "{{ ((item.size_available | int) / 1048576) | int }} MB free on {{ item.mount }}"
+    quiet: true
+  vars:
+    system_update_preflight_min_mb: >-
+      {{ system_update_min_free_mb_root if item.mount == '/' else system_update_min_free_mb_boot }}
+  loop: "{{ ansible_facts['mounts'] | selectattr('mount', 'in', ['/'] + system_update_boot_mounts) | list }}"
+  loop_control:
+    label: "{{ item.mount }}"

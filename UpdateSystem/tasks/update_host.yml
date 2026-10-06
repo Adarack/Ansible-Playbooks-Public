@@ -1,0 +1,53 @@
+---
+# Shared per-host update steps, imported by every play in main.yml
+
+- name: Display system information
+  ansible.builtin.debug:
+    msg:
+      - "Updating: {{ inventory_hostname }}"
+      - "System: {{ ansible_facts['system'] }} {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+      - "Architecture: {{ ansible_facts['architecture'] }}"
+  tags: always
+
+- name: Check for kvmd (PiKVM detection)
+  ansible.builtin.stat:
+    path: /usr/bin/kvmd
+  register: update_host_kvmd
+  tags: always
+
+- name: Set PiKVM detection fact
+  ansible.builtin.set_fact:
+    pikvm_update_is_pikvm_system: "{{ 'pikvm' in group_names or update_host_kvmd.stat.exists }}"
+  tags: always
+
+- name: Update all system packages
+  ansible.builtin.import_role:
+    name: system_update
+  when:
+    - role_enabled.system_update | default(true)
+    - not pikvm_update_is_pikvm_system
+  tags: system
+
+- name: Update Pi-hole (if installed)
+  ansible.builtin.import_role:
+    name: pihole_update
+  when: role_enabled.pihole_update | default(true)
+  tags: pihole
+
+- name: Update PiKVM (if detected)
+  ansible.builtin.import_role:
+    name: pikvm_update
+  when:
+    - role_enabled.pikvm_update | default(true)
+    - pikvm_update_enabled | default(true)
+    - pikvm_update_is_pikvm_system
+  tags: pikvm
+
+- name: Record update summary for this host
+  ansible.builtin.set_fact:
+    update_host_summary:
+      packages: "{{ system_update_pending_packages | default([]) | length }}"
+      changed: "{{ system_update_changed | default(false) or (pikvm_update_result is defined and pikvm_update_result is not skipped) }}"
+      reboot_needed: "{{ system_update_reboot_needed | default(false) }}"
+      rebooted: "{{ system_update_rebooted | default(false) }}"
+  tags: always

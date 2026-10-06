@@ -16,13 +16,17 @@ ansible-playbook -i inventory/hosts.yml main.yml
 
 # 4. Update specific group
 ansible-playbook -i inventory/hosts.yml main.yml --limit debian_based
-ansible-playbook -i inventory/hosts.yml main.yml --limit pihole_servers
+ansible-playbook -i inventory/hosts.yml main.yml --limit pihole
 ```
 
 ## What It Does
 
 - **System Updates**: Updates all packages on Debian, Red Hat, and Arch-based systems
 - **Pi-hole Updates**: Updates Pi-hole components and gravity database (if installed)
+- **PiKVM Updates**: Runs `pikvm-update` with read-only filesystem handling
+- **Safe Ordering**: Pi-holes and K3s nodes are updated one at a time (K3s nodes are drained before reboot); the VPS is never auto-rebooted
+- **Pre-flight Checks**: Fails early if `/` or `/boot` is low on space
+- **Summary**: Prints per-host pending packages / reboot status at the end
 - **Multi-Platform**: Supports x86_64, ARM64, and ARM32 architectures
 - **Safe by Default**: No automatic reboots, graceful handling of missing components
 
@@ -42,8 +46,15 @@ ansible-playbook -i inventory/hosts.yml main.yml --check
 # Update with automatic reboot
 ansible-playbook -i inventory/hosts.yml main.yml -e "system_update_reboot_if_required=true"
 
-# Only update Pi-hole
-ansible-playbook -i inventory/hosts.yml main.yml --limit pihole_servers
+# Only run Pi-hole updates (skip OS packages) on all hosts
+ansible-playbook -i inventory/hosts.yml main.yml --tags pihole
+
+# Only OS packages / only PiKVM
+ansible-playbook -i inventory/hosts.yml main.yml --tags system
+ansible-playbook -i inventory/hosts.yml main.yml --tags pikvm
+
+# Pi-holes one at a time, rebooting when needed, verifying DNS after each
+ansible-playbook -i inventory/hosts.yml pihole_update_serial.yml
 
 # Validate syntax
 ansible-playbook -i inventory/hosts.yml main.yml --syntax-check
@@ -72,6 +83,8 @@ See [CLAUDE.md](CLAUDE.md) for complete documentation including:
 ## Safety Features
 
 ✅ No automatic reboots by default
+✅ Serial updates for Pi-hole and K3s; reboot-excluded groups (e.g. `vps`)
+✅ PiKVM filesystem always remounted read-only, even if the update fails
 ✅ Graceful Pi-hole detection (skips if not installed)
 ✅ Check mode support for dry runs
 ✅ Idempotent - safe to run multiple times
@@ -81,11 +94,14 @@ See [CLAUDE.md](CLAUDE.md) for complete documentation including:
 
 ```
 UpdateSystem/
-├── main.yml                    # Main playbook
+├── main.yml                    # Main playbook (serial plays for pihole/k3s)
+├── pihole_update_serial.yml    # Pi-holes one at a time with DNS verification
+├── tasks/update_host.yml       # Shared per-host steps used by every play
 ├── ansible.cfg                 # Ansible configuration
 ├── inventory/hosts.yml         # Target systems
 ├── group_vars/all.yml          # Centralized config
 └── roles/
-    ├── system_update/          # Multi-distro package updates
-    └── pihole_update/          # Pi-hole updates
+    ├── system_update/          # Multi-distro package updates + reboot handling
+    ├── pihole_update/          # Pi-hole updates
+    └── pikvm_update/           # PiKVM updates
 ```

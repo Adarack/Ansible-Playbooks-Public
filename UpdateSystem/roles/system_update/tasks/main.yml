@@ -1,0 +1,28 @@
+---
+# System update role - entry point
+# Each distro family lives in its own task file; they all set the same facts:
+#   system_update_pending_packages  - packages that were (or would be) upgraded
+#   system_update_changed           - whether the upgrade changed anything
+#   system_update_reboot_needed     - whether the host needs a reboot
+
+- name: Initialise update result facts
+  ansible.builtin.set_fact:
+    system_update_pending_packages: []
+    system_update_changed: false
+    system_update_reboot_needed: false
+    system_update_rebooted: false
+
+- name: Run pre-flight checks
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Update packages for this distribution family
+  ansible.builtin.include_tasks: "{{ ansible_facts['os_family'] | lower }}.yml"
+  when: ansible_facts['os_family'] in ['Debian', 'RedHat', 'Archlinux']
+
+- name: Warn about unsupported distribution family
+  ansible.builtin.debug:
+    msg: "WARNING: {{ ansible_facts['os_family'] }} is not supported by system_update on {{ inventory_hostname }}, skipping"
+  when: ansible_facts['os_family'] not in ['Debian', 'RedHat', 'Archlinux']
+
+- name: Handle reboot
+  ansible.builtin.import_tasks: reboot.yml

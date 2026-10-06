@@ -70,17 +70,9 @@ debug_*
 roles/*/templates/*.j2
 !roles/*/templates/*.j2.example
 
-# Ansible Galaxy dependencies
-roles/*/
-!roles/users/
-!roles/common-pkg/
-!roles/docker/
-!roles/timezone/
-!roles/sshd_conf/
-!roles/rpi_exporter/
-!roles/node_exporter/
-!roles/rpi_reporter/
-!roles/monitoring_server/
+# Ansible Galaxy dependencies (install into galaxy_roles/, not roles/,
+# so the project's own roles under roles/ stay tracked)
+galaxy_roles/
 
 # Exception: Keep example files
 !*.example

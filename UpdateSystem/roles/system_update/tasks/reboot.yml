@@ -1,0 +1,60 @@
+---
+# Reboot handling (all distro families)
+
+- name: Determine whether this host may be rebooted automatically
+  ansible.builtin.set_fact:
+    system_update_reboot_allowed: >-
+      {{ system_update_reboot_if_required
+         and (group_names | intersect(system_update_reboot_excluded_groups) | length == 0) }}
+    system_update_k3s_api_host: >-
+      {{ groups[system_update_k3s_control_group] | default([])
+         | difference([inventory_hostname]) | first | default(inventory_hostname) }}
+
+- name: Notify if reboot is required but not automatic
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: System reboot is required on {{ inventory_hostname }} but
+      {{ 'automatic reboot is disabled'
+         if not system_update_reboot_if_required
+         else 'the host is in a reboot-excluded group (' ~ (group_names | intersect(system_update_reboot_excluded_groups) | join(', ')) ~ ')' }}
+  when:
+    - system_update_reboot_needed
+    - not system_update_reboot_allowed
+
+- name: Reboot host
+  when:
+    - system_update_reboot_needed
+    - system_update_reboot_allowed
+  block:
+    - name: Drain K3s node before reboot
+      ansible.builtin.command: >-
+        k3s kubectl drain {{ system_update_k3s_node_name }}
+        --ignore-daemonsets --delete-emptydir-data
+        --timeout={{ system_update_k3s_drain_timeout }}s
+      delegate_to: "{{ system_update_k3s_api_host }}"
+      changed_when: true
+      when:
+        - system_update_k3s_drain
+        - system_update_k3s_group in group_names
+
+    - name: Reboot system if required
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ system_update_reboot_timeout }}"
+        msg: "Rebooting after system updates"
+
+    - name: Record reboot
+      ansible.builtin.set_fact:
+        system_update_rebooted: true
+
+    - name: Uncordon K3s node after reboot
+      ansible.builtin.command: k3s kubectl uncordon {{ system_update_k3s_node_name }}
+      delegate_to: "{{ system_update_k3s_api_host }}"
+      register: system_update_k3s_uncordon
+      changed_when: true
+      # The API server may still be starting if this node is the API host
+      retries: 12
+      delay: 10
+      until: system_update_k3s_uncordon.rc == 0
+      when:
+        - system_update_k3s_drain
+        - system_update_k3s_group in group_names

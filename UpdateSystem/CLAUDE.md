@@ -8,7 +8,12 @@ UpdateSystem is an Ansible playbook designed to update all packages on Linux sys
 
 ## Architecture
 
-- **Main Playbook**: `main.yml` - Orchestrates system, Pi-hole, and PiKVM updates
+- **Main Playbook**: `main.yml` - Orchestrates system, Pi-hole, and PiKVM updates in four plays:
+  1. `pihole` hosts with `serial: 1` (DNS stays up)
+  2. `k3s` hosts with `serial: 1` (etcd quorum kept; nodes drained before reboot). Override with `-e k3s_update_serial=2`
+  3. All other hosts in parallel (`all:!pihole:!k3s`)
+  4. Summary of pending packages / reboot status per host
+- **Shared Tasks**: `tasks/update_host.yml` - Per-host steps imported by every play (PiKVM detection, role imports, summary fact)
 - **Serial Playbook**: `pihole_update_serial.yml` - Updates Pi-hole servers one at a time with reboots
 - **Inventory**: `inventory/hosts.yml` - Multi-dimensional structure shared with Linux-Setup
 - **Roles Structure**: Three specialized roles for update operations:
@@ -84,10 +89,10 @@ ansible-inventory -i inventory/hosts.yml --list
 
 ```bash
 # Only update system packages (skip Pi-hole and PiKVM)
-ansible-playbook -i inventory/hosts.yml main.yml -e "role_enabled={system_update: true, pihole_update: false, pikvm_update: false}"
+ansible-playbook -i inventory/hosts.yml main.yml --tags system
 
 # Only update Pi-hole (skip system packages)
-ansible-playbook -i inventory/hosts.yml main.yml -e "role_enabled={system_update: false, pihole_update: true}"
+ansible-playbook -i inventory/hosts.yml main.yml --tags pihole
 
 # Only update PiKVM systems
 ansible-playbook -i inventory/hosts.yml main.yml --limit pikvm
@@ -118,6 +123,11 @@ system_update_autoclean: true          # Clean package cache
 system_update_reboot_if_required: false # Auto-reboot after updates
 system_update_reboot_timeout: 600      # Reboot timeout (seconds)
 system_update_upgrade_type: "safe"     # "safe" or "dist" for Debian
+system_update_reboot_excluded_groups: [vps]  # Never auto-reboot these groups
+system_update_min_free_mb_root: 500    # Pre-flight free space on /
+system_update_min_free_mb_boot: 50     # Pre-flight free space on /boot, /boot/firmware
+system_update_apt_lock_timeout: 300    # Wait for dpkg lock (unattended-upgrades)
+system_update_k3s_drain: true          # Drain/uncordon k3s nodes around reboots
 ```
 
 #### Pi-hole Update Settings
@@ -126,6 +136,8 @@ pihole_update_enabled: true       # Update Pi-hole components
 pihole_update_gravity: true       # Update gravity (blocklists)
 pihole_update_restart_ftl: false  # Restart FTL service
 pihole_update_check_status: true  # Check status after update
+pihole_update_serial_force_reboot: false   # Serial playbook: reboot even if not required
+pihole_update_verify_domain: google.com    # Serial playbook: domain used to verify DNS
 ```
 
 #### PiKVM Update Settings
@@ -170,11 +182,18 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 - Distribution-aware package updates (apt, yum/dnf, pacman)
 - Automatic package cache management
 - Orphaned package removal
-- Reboot detection and handling (Debian/Ubuntu)
+- Pre-flight free-space check on `/` and `/boot`
+- Reboot detection: `/var/run/reboot-required` (Debian), `needs-restarting -r` (RHEL), missing `/usr/lib/modules/<running kernel>` (Arch)
+- Reboot-excluded groups (`system_update_reboot_excluded_groups`)
+- K3s drain before reboot / uncordon after (delegated to another control node)
+- Sets facts `system_update_pending_packages`, `system_update_changed`, `system_update_reboot_needed`, `system_update_rebooted`
 - Upgrade type selection (safe vs dist-upgrade)
 
 **Files**:
-- `tasks/main.yml`: Update tasks for each distribution family
+- `tasks/main.yml`: Entry point; includes the per-family file
+- `tasks/preflight.yml`: Disk space checks
+- `tasks/debian.yml`, `tasks/redhat.yml`, `tasks/archlinux.yml`: Per-family updates
+- `tasks/reboot.yml`: Reboot decision, k3s drain/uncordon
 - `defaults/main.yml`: Default update behavior settings
 - `meta/main.yml`: Role metadata and platform support
 
@@ -217,7 +236,7 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 **Purpose**: Update PiKVM systems while managing read-only filesystem
 
 **Features**:
-- Automatic PiKVM detection (checks for `pikvm-update` command)
+- PiKVM detection in `tasks/update_host.yml`: host in `pikvm` group or `/usr/bin/kvmd` exists
 - Read-only filesystem management (`rw` → update → `ro`)
 - Installs `pikvm-os-updater` if needed
 - Handles ALL system updates (not just PiKVM components)
@@ -286,7 +305,9 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 
 ### Reboot Protection
 - **Default**: No automatic reboots (`system_update_reboot_if_required: false`)
-- **Detection**: Checks `/var/run/reboot-required` on Debian/Ubuntu
+- **Detection**: Debian/Ubuntu, RHEL (`needs-restarting`) and Arch (kernel modules check)
+- **Excluded groups**: Hosts in `system_update_reboot_excluded_groups` (default `vps`) are never auto-rebooted
+- **Serial plays**: Pi-hole and K3s hosts update/reboot one at a time; K3s nodes are drained first
 - **Warning**: Notifies when reboot is needed but not automatic
 - **Override**: Can be enabled per-run or in configuration
 
@@ -301,7 +322,8 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 - **Early Detection**: Detects PiKVM before system_update runs
 - **Exclusive Updates**: Only `pikvm-update` runs on PiKVM hosts
 - **Filesystem Protection**: Automatically manages read-only/writable states
-- **Graceful Remount**: Uses `failed_when: false` on `ro` command for busy filesystems
+- **Graceful Remount**: `ro` runs in an `always:` block (even if the update fails) with `failed_when: false` for busy filesystems
+- **Timeout**: `pikvm-update` runs async, bounded by `pikvm_update_timeout`
 - **Temporary Directory**: Uses `/tmp` for Ansible operations (read-only root)
 
 ### Update Types
@@ -317,7 +339,7 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 0 2 * * * cd /path/to/UpdateSystem && ansible-playbook -i inventory/hosts.yml main.yml >> /var/log/ansible-updates.log 2>&1
 
 # Weekly Pi-hole updates on Sunday at 3 AM
-0 3 * * 0 cd /path/to/UpdateSystem && ansible-playbook -i inventory/hosts.yml main.yml --limit pihole_servers
+0 3 * * 0 cd /path/to/UpdateSystem && ansible-playbook -i inventory/hosts.yml main.yml --limit pihole
 ```
 
 ### Systemd Timer Example
@@ -380,28 +402,31 @@ Enable: `systemctl enable --now ansible-updates.timer`
 - Ensure SSH key authentication is working
 
 **Pi-hole update skipped unexpectedly**:
-- Check if `pihole` command is in PATH
-- Verify Pi-hole installation: `which pihole`
+- Detection checks `pihole_update_binary` (default `/usr/local/bin/pihole`)
+- Verify Pi-hole installation: `ls -l /usr/local/bin/pihole`
 - Review `pihole_update_enabled` setting
 
 **PiKVM update fails with "permission denied"**:
 - Verify `ansible_remote_tmp` is set in inventory for PiKVM hosts
 - Should be: `ansible_remote_tmp: "/tmp/.ansible-${USER}/tmp"`
+- Also set `ansible_async_dir: "/tmp/.ansible-root/async"` (pikvm-update runs async)
 - Check that `pikvm-update` command exists on target
 
 **System updates run on PiKVM (should skip)**:
 - Verify early detection is enabled in main.yml
-- Check `is_pikvm_system` fact is being set correctly
+- Check `pikvm_update_is_pikvm_system` fact (host in `pikvm` group or `/usr/bin/kvmd` exists)
 - Review task order - detection must happen before system_update
 
 **Reboot not happening automatically**:
 - Verify `system_update_reboot_if_required: true` is set
 - Check `/var/run/reboot-required` exists on target
-- Only works on Debian/Ubuntu systems
+- Check the host is not in `system_update_reboot_excluded_groups`
+- RHEL needs `needs-restarting` (dnf-utils) for detection
 
-**Arch Linux autoremove fails**:
-- Normal if no orphaned packages exist
-- Error is suppressed with `failed_when: false`
+**K3s drain fails**:
+- Drain runs `k3s kubectl` on another control node (`system_update_k3s_control_group`)
+- Node name defaults to the lowercase hostname; override with `system_update_k3s_node_name`
+- Disable with `system_update_k3s_drain: false`
 
 **PiKVM filesystem busy error**:
 - Normal when remounting read-only
