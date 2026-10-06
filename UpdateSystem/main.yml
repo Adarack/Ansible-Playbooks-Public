@@ -3,9 +3,28 @@
 #   - Pi-hole servers (keep DNS up)
 #   - K3s nodes (keep etcd quorum; nodes are drained before any reboot)
 # Everything else is updated in parallel.
+# Unreachable hosts are filtered out first: in a serial play a single
+# unreachable host fails its whole batch, which would abort the entire run.
+
+- name: Find reachable hosts
+  hosts: all
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Check SSH connectivity
+      ansible.builtin.ping:
+      register: update_reachability
+      ignore_unreachable: true
+      tags: always
+
+    - name: Group reachable hosts
+      ansible.builtin.group_by:
+        key: update_reachable
+      when: update_reachability is not unreachable
+      tags: always
 
 - name: Update Pi-hole servers (one at a time)
-  hosts: pihole
+  hosts: update_reachable:&pihole
   gather_facts: true
   become: true
   serial: 1
@@ -15,7 +34,7 @@
       ansible.builtin.import_tasks: tasks/update_host.yml
 
 - name: Update K3s nodes (one at a time)
-  hosts: k3s
+  hosts: update_reachable:&k3s
   gather_facts: true
   become: true
   serial: "{{ k3s_update_serial | default(1) }}"
@@ -25,7 +44,7 @@
       ansible.builtin.import_tasks: tasks/update_host.yml
 
 - name: Update all other systems
-  hosts: all:!pihole:!k3s
+  hosts: update_reachable:!pihole:!k3s
   gather_facts: true
   become: true
   tasks:
@@ -50,5 +69,14 @@
              else ('REBOOT NEEDED' if hostvars[item].update_host_summary.reboot_needed else 'no reboot needed') }}
       loop: "{{ ansible_play_hosts_all }}"
       when: hostvars[item].update_host_summary is defined
+      run_once: true  # noqa: run-once[task] - play strategy is pinned to linear
+      tags: always
+
+    - name: Display unreachable hosts (not updated)
+      ansible.builtin.debug:
+        msg: "UNREACHABLE, not updated: {{ update_unreachable_hosts | join(', ') }}"
+      vars:
+        update_unreachable_hosts: "{{ ansible_play_hosts_all | difference(groups['update_reachable'] | default([])) }}"
+      when: update_unreachable_hosts | length > 0
       run_once: true  # noqa: run-once[task] - play strategy is pinned to linear
       tags: always

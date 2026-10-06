@@ -101,7 +101,9 @@ all:
 
     deskpi:
       hosts:
-        # 10.10.2.18:  # DESKPI
+        # 10.10.2.18:  # DESKPI - per-host login override (host vars beat group vars)
+        #   ansible_user: "jason"
+        #   ansible_ssh_private_key_file: "~/.ssh/jason_key"
 
     meshtastic:
       hosts:
