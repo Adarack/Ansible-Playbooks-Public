@@ -1,0 +1,21 @@
+---
+# Decide whether autoremove may run, given the packages it would remove
+# (system_update_autoremove_candidates, passed in by the caller)
+
+- name: Decide whether autoremove may run
+  ansible.builtin.set_fact:
+    system_update_autoremove_allowed: >-
+      {{ (system_update_autoremove_candidates | length > 0)
+         and (system_update_autoremove_candidates | length <= system_update_autoremove_max | int) }}
+    system_update_autoremove_skipped: >-
+      {{ system_update_autoremove_candidates if system_update_autoremove_candidates | length > system_update_autoremove_max | int else [] }}
+
+- name: Warn that autoremove was skipped
+  ansible.builtin.debug:
+    msg:
+      - >-
+        WARNING: autoremove SKIPPED on {{ inventory_hostname }}: it would remove
+        {{ system_update_autoremove_candidates | length }} packages (limit {{ system_update_autoremove_max }}).
+        Review the list; if intended, rerun with -e system_update_autoremove_max=999
+      - "{{ system_update_autoremove_candidates }}"
+  when: system_update_autoremove_skipped | length > 0

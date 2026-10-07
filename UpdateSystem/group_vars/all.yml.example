@@ -24,6 +24,7 @@ role_enabled:
 # Package update settings
 system_update_cache: true
 system_update_autoremove: true
+system_update_autoremove_max: 20   # Skip autoremove (with warning) if it would remove more than this
 system_update_autoclean: true
 
 # Reboot configuration

@@ -13,6 +13,11 @@ system_update_apt_lock_timeout: 300
 # Autoremove unused packages after update
 system_update_autoremove: true
 
+# Skip autoremove (with a warning) when it would remove more than this many
+# packages - a large count usually means a meta-package was removed and apt
+# now considers a whole stack (e.g. the desktop) unneeded
+system_update_autoremove_max: 20
+
 # Autoclean package cache after update
 system_update_autoclean: true
 

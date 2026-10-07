@@ -66,7 +66,9 @@
           {{ hostvars[item].update_host_summary.packages }} package(s) pending before upgrade,
           {{ 'changed' if hostvars[item].update_host_summary.changed else 'no changes' }},
           {{ 'REBOOTED' if hostvars[item].update_host_summary.rebooted
-             else ('REBOOT NEEDED' if hostvars[item].update_host_summary.reboot_needed else 'no reboot needed') }}
+             else ('REBOOT NEEDED' if hostvars[item].update_host_summary.reboot_needed else 'no reboot needed') }}{{
+          (', AUTOREMOVE SKIPPED (' ~ hostvars[item].update_host_summary.autoremove_skipped ~ ' packages)')
+          if (hostvars[item].update_host_summary.autoremove_skipped | int) > 0 else '' }}
       loop: "{{ ansible_play_hosts_all }}"
       when: hostvars[item].update_host_summary is defined
       run_once: true  # noqa: run-once[task] - play strategy is pinned to linear

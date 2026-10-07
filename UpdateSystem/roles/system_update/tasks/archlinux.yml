@@ -16,6 +16,12 @@
   check_mode: false
   when: system_update_autoremove
 
+- name: Check autoremove size (Arch Linux)
+  ansible.builtin.include_tasks: autoremove_check.yml
+  vars:
+    system_update_autoremove_candidates: "{{ system_update_pacman_orphans.stdout_lines | default([]) }}"
+  when: system_update_autoremove
+
 - name: Remove orphaned packages (Arch Linux)
   community.general.pacman:
     name: "{{ system_update_pacman_orphans.stdout_lines }}"
@@ -23,7 +29,7 @@
     extra_args: --recursive
   when:
     - system_update_autoremove
-    - system_update_pacman_orphans.stdout_lines | default([]) | length > 0
+    - system_update_autoremove_allowed | default(false)
 
 - name: Check whether the running kernel's modules are still installed (Arch Linux)
   # Arch removes the old kernel's module directory on upgrade, so a missing

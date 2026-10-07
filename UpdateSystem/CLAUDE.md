@@ -124,6 +124,7 @@ system_update_reboot_if_required: false # Auto-reboot after updates
 system_update_reboot_timeout: 600      # Reboot timeout (seconds)
 system_update_upgrade_type: "safe"     # "safe" or "dist" for Debian
 system_update_reboot_excluded_groups: [vps]  # Never auto-reboot these groups
+system_update_autoremove_max: 20       # Skip autoremove with a warning above this many packages
 system_update_min_free_mb_root: 500    # Pre-flight free space on /
 system_update_min_free_mb_boot: 50     # Pre-flight free space on /boot, /boot/firmware
 system_update_apt_lock_timeout: 300    # Wait for dpkg lock (unattended-upgrades)
@@ -183,6 +184,8 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 - Automatic package cache management
 - Orphaned package removal
 - Pre-flight free-space check on `/` and `/boot`
+- Autoremove guard: previews what autoremove would remove and skips it (with a warning listing the packages) above `system_update_autoremove_max`; a large count usually means a meta-package was removed and apt considers a whole stack (e.g. the desktop) unneeded
+- Check mode still refreshes the apt package lists so the pending-package count is accurate
 - Reboot detection: `/var/run/reboot-required` (Debian), `needs-restarting -r` (RHEL), missing `/usr/lib/modules/<running kernel>` (Arch)
 - Reboot-excluded groups (`system_update_reboot_excluded_groups`)
 - K3s drain before reboot / uncordon after (delegated to another control node)
@@ -194,6 +197,7 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 - `tasks/preflight.yml`: Disk space checks
 - `tasks/debian.yml`, `tasks/redhat.yml`, `tasks/archlinux.yml`: Per-family updates
 - `tasks/reboot.yml`: Reboot decision, k3s drain/uncordon
+- `tasks/autoremove_check.yml`: Autoremove size guard shared by all families
 - `defaults/main.yml`: Default update behavior settings
 - `meta/main.yml`: Role metadata and platform support
 

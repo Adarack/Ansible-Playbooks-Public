@@ -23,11 +23,31 @@
     state: latest  # noqa: package-latest
   register: system_update_rpm_result
 
+- name: Preview autoremove (RHEL/CentOS/Fedora)
+  ansible.builtin.command: "{{ ansible_facts['pkg_mgr'] }} repoquery --unneeded -q"
+  register: system_update_rpm_autoremove_preview
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when:
+    - system_update_autoremove
+    - ansible_facts['pkg_mgr'] in ['dnf', 'dnf5']
+
+- name: Check autoremove size (RHEL/CentOS/Fedora)
+  ansible.builtin.include_tasks: autoremove_check.yml
+  vars:
+    system_update_autoremove_candidates: "{{ system_update_rpm_autoremove_preview.stdout_lines | default([]) }}"
+  when:
+    - system_update_autoremove
+    - ansible_facts['pkg_mgr'] in ['dnf', 'dnf5']
+    - system_update_rpm_autoremove_preview.rc | default(1) == 0
+
 - name: Autoremove unused packages (dnf)
   ansible.builtin.dnf:
     autoremove: true
   when:
     - system_update_autoremove
+    - system_update_autoremove_allowed | default(false)
     - ansible_facts['pkg_mgr'] == 'dnf'
 
 - name: Autoremove unused packages (dnf5)
@@ -35,6 +55,7 @@
     autoremove: true
   when:
     - system_update_autoremove
+    - system_update_autoremove_allowed | default(false)
     - ansible_facts['pkg_mgr'] == 'dnf5'
 
 - name: Check if reboot is required (RHEL/CentOS/Fedora)

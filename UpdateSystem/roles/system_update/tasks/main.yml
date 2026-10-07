@@ -11,6 +11,8 @@
     system_update_changed: false
     system_update_reboot_needed: false
     system_update_rebooted: false
+    system_update_autoremove_allowed: false
+    system_update_autoremove_skipped: []
 
 - name: Run pre-flight checks
   ansible.builtin.import_tasks: preflight.yml
