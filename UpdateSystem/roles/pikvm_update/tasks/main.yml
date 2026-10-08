@@ -25,17 +25,25 @@
       when: pikvm_update_updater_check.rc != 0 or pikvm_update_force_install_updater
 
     - name: Run PiKVM update (handles ALL system updates)
-      ansible.builtin.command: pikvm-update
+      # --no-reboot: pikvm-update otherwise reboots by itself when done, which
+      # wipes /tmp (tmpfs) mid-task and Ansible loses the async job. With it,
+      # the script exits 100 when a reboot is required and Ansible decides.
+      ansible.builtin.command: pikvm-update --no-reboot
       register: pikvm_update_result
-      changed_when: true
+      changed_when: pikvm_update_result.rc == 100 or 'already up-to-date' not in pikvm_update_result.stdout
+      failed_when: pikvm_update_result.rc not in [0, 100]
       async: "{{ pikvm_update_timeout }}"
       poll: 15
+
+    - name: Record whether PiKVM needs a reboot
+      ansible.builtin.set_fact:
+        pikvm_update_reboot_needed: "{{ pikvm_update_result.rc == 100 }}"
 
     - name: Display update results
       ansible.builtin.debug:
         msg:
           - "PiKVM update completed (includes all system updates)"
-          - "{{ pikvm_update_result.stdout_lines | default(['No output']) }}"
+          - "{{ pikvm_update_result.stdout_lines[-8:] | default(['No output']) }}"
 
   always:
     - name: Remount filesystem as read-only (ro mode)
@@ -44,8 +52,18 @@
       changed_when: true
       failed_when: false
 
-- name: Reboot system after update
+- name: Notify if PiKVM reboot is required but not automatic
+  ansible.builtin.debug:
+    msg: "WARNING: PiKVM {{ inventory_hostname }} needs a reboot to finish the update (set pikvm_update_reboot_after: true to reboot automatically)"
+  when:
+    - pikvm_update_reboot_needed | default(false)
+    - not pikvm_update_reboot_after
+
+- name: Reboot PiKVM to finish the update
   ansible.builtin.reboot:
     reboot_timeout: "{{ pikvm_update_reboot_timeout }}"
     msg: "Rebooting after PiKVM update"
-  when: pikvm_update_reboot_after
+  register: pikvm_update_reboot_result
+  when:
+    - pikvm_update_reboot_needed | default(false)
+    - pikvm_update_reboot_after

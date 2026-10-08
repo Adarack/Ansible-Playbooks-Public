@@ -260,7 +260,7 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 
 **PiKVM Commands Used**:
 - `rw`: Make filesystem writable
-- `pikvm-update`: Update ALL system components (OS + PiKVM)
+- `pikvm-update --no-reboot`: Update ALL system components (OS + PiKVM); exits 100 when a reboot is required
 - `ro`: Remount filesystem as read-only
 - `pacman`: Package manager (used if updater needs installation)
 
@@ -328,6 +328,7 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 - **Filesystem Protection**: Automatically manages read-only/writable states
 - **Graceful Remount**: `ro` runs in an `always:` block (even if the update fails) with `failed_when: false` for busy filesystems
 - **Timeout**: `pikvm-update` runs async, bounded by `pikvm_update_timeout`
+- **No self-reboot**: runs `pikvm-update --no-reboot` (by default the script reboots itself, which wipes `/tmp` mid-task and loses the async job). Exit code 100 = reboot required; Ansible reboots only if `pikvm_update_reboot_after: true`, otherwise warns and the summary shows REBOOT NEEDED
 - **Temporary Directory**: Uses `/tmp` for Ansible operations (read-only root)
 
 ### Update Types

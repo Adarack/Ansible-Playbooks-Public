@@ -47,8 +47,8 @@
   ansible.builtin.set_fact:
     update_host_summary:
       packages: "{{ system_update_pending_packages | default([]) | length }}"
-      changed: "{{ system_update_changed | default(false) or (pikvm_update_result is defined and pikvm_update_result is not skipped) }}"
-      reboot_needed: "{{ system_update_reboot_needed | default(false) }}"
-      rebooted: "{{ system_update_rebooted | default(false) }}"
+      changed: "{{ system_update_changed | default(false) or (pikvm_update_result is defined and pikvm_update_result is changed) }}"
+      reboot_needed: "{{ system_update_reboot_needed | default(false) or pikvm_update_reboot_needed | default(false) }}"
+      rebooted: "{{ system_update_rebooted | default(false) or (pikvm_update_reboot_result is defined and pikvm_update_reboot_result is changed) }}"
       autoremove_skipped: "{{ system_update_autoremove_skipped | default([]) | length }}"
   tags: always

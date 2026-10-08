@@ -5,7 +5,8 @@
 # Enable/disable PiKVM update
 pikvm_update_enabled: true
 
-# Reboot after update (recommended for kernel updates)
+# Reboot automatically when pikvm-update reports a reboot is required
+# (otherwise a warning is shown and the summary says REBOOT NEEDED)
 pikvm_update_reboot_after: false
 pikvm_update_reboot_timeout: 300
 
