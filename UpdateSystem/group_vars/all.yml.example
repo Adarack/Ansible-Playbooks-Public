@@ -28,13 +28,12 @@ system_update_autoremove_max: 20   # Skip autoremove (with warning) if it would 
 system_update_autoclean: true
 
 # Reboot configuration
-system_update_reboot_if_required: false  # Set to true to auto-reboot after updates
+system_update_reboot_if_required: true   # Reboot automatically when an update requires it
 system_update_reboot_timeout: 600        # Reboot timeout in seconds (10 minutes)
 
-# Never auto-reboot hosts in these groups (a warning is shown instead).
-# The Pangolin VPS carries every tunnel, so reboot it by hand.
-system_update_reboot_excluded_groups:
-  - vps
+# Never auto-reboot hosts in these groups (a warning is shown instead),
+# e.g. [vps] to keep the Pangolin VPS (and every tunnel) from rebooting
+system_update_reboot_excluded_groups: []
 
 # Pre-flight free-space requirements (MB)
 system_update_min_free_mb_root: 500
@@ -76,7 +75,7 @@ pihole_update_verify_domain: google.com
 
 # PiKVM update settings (for systems with read-only filesystem)
 pikvm_update_enabled: true           # Update PiKVM components
-pikvm_update_reboot_after: false     # Reboot after update (recommended for kernel updates)
+pikvm_update_reboot_after: true      # Reboot automatically when pikvm-update requires it
 pikvm_update_reboot_timeout: 300     # Reboot timeout in seconds (5 minutes)
 pikvm_update_timeout: 600            # Update operation timeout in seconds (10 minutes)
 pikvm_update_force_install_updater: false  # Install/upgrade pikvm-os-updater even if present

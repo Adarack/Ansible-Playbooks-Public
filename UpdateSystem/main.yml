@@ -33,6 +33,10 @@
     - name: Run update steps
       ansible.builtin.import_tasks: tasks/update_host.yml
 
+    - name: Verify Pi-hole health and DNS before moving to the next one
+      ansible.builtin.import_tasks: tasks/verify_pihole.yml
+      tags: always
+
 - name: Update K3s nodes (one at a time)
   hosts: update_reachable:&k3s
   gather_facts: true

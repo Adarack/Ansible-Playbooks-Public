@@ -24,11 +24,11 @@ ansible-playbook -i inventory/hosts.yml main.yml --limit pihole
 - **System Updates**: Updates all packages on Debian, Red Hat, and Arch-based systems
 - **Pi-hole Updates**: Updates Pi-hole components and gravity database (if installed)
 - **PiKVM Updates**: Runs `pikvm-update` with read-only filesystem handling
-- **Safe Ordering**: Pi-holes and K3s nodes are updated one at a time (K3s nodes are drained before reboot); the VPS is never auto-rebooted
+- **Safe Ordering**: Pi-holes and K3s nodes are updated (and rebooted) one at a time; K3s nodes are drained before reboot
 - **Pre-flight Checks**: Fails early if `/` or `/boot` is low on space
 - **Summary**: Prints per-host pending packages / reboot status at the end
 - **Multi-Platform**: Supports x86_64, ARM64, and ARM32 architectures
-- **Safe by Default**: No automatic reboots, graceful handling of missing components
+- **Automatic Reboots**: Hosts reboot when an update requires it (`system_update_reboot_if_required` in `group_vars/all.yml`; groups listed in `system_update_reboot_excluded_groups` only get a warning)
 
 ## Supported Platforms
 
@@ -82,8 +82,8 @@ See [CLAUDE.md](CLAUDE.md) for complete documentation including:
 
 ## Safety Features
 
-✅ No automatic reboots by default
-✅ Serial updates for Pi-hole and K3s; reboot-excluded groups (e.g. `vps`)
+✅ Reboots only when required, one host at a time for Pi-hole and K3s
+✅ Optional reboot-excluded groups (e.g. `[vps]`)
 ✅ PiKVM filesystem always remounted read-only, even if the update fails
 ✅ Graceful Pi-hole detection (skips if not installed)
 ✅ Check mode support for dry runs

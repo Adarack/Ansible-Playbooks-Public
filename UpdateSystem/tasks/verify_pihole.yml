@@ -1,0 +1,38 @@
+---
+# Verify a Pi-hole is healthy and answering DNS after updating/rebooting.
+# Used by main.yml and pihole_update_serial.yml so the next Pi-hole is only
+# touched once this one is serving DNS again.
+
+- name: Verify Pi-hole is running
+  ansible.builtin.command: pihole status
+  register: pihole_status_post_update
+  changed_when: false
+  check_mode: false
+  retries: 5
+  delay: 10
+  until: pihole_status_post_update.rc == 0
+
+- name: Verify Pi-hole FTL service is running
+  ansible.builtin.service_facts:
+  register: ftl_service_check
+  retries: 5
+  delay: 10
+  until: ftl_service_check.ansible_facts.services['pihole-FTL.service'].state | default('') == 'running'
+
+- name: Verify DNS resolution through this Pi-hole
+  ansible.builtin.command: >-
+    dig +short +time=3 +tries=2
+    @{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}
+    {{ pihole_update_verify_domain | default('google.com') }}
+  # Runs on the controller; ansible_host would resolve to the delegated host
+  # (localhost) here, so the Pi-hole's address is read from its own hostvars
+  delegate_to: localhost
+  become: false
+  register: pihole_dns_check
+  changed_when: false
+  check_mode: false
+  retries: 5
+  delay: 10
+  until:
+    - pihole_dns_check.rc == 0
+    - pihole_dns_check.stdout | length > 0

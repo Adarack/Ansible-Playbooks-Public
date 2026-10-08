@@ -120,10 +120,10 @@ role_enabled:
 system_update_cache: true              # Update package cache
 system_update_autoremove: true         # Remove unused packages
 system_update_autoclean: true          # Clean package cache
-system_update_reboot_if_required: false # Auto-reboot after updates
+system_update_reboot_if_required: true  # Auto-reboot when an update requires it
 system_update_reboot_timeout: 600      # Reboot timeout (seconds)
 system_update_upgrade_type: "safe"     # "safe" or "dist" for Debian
-system_update_reboot_excluded_groups: [vps]  # Never auto-reboot these groups
+system_update_reboot_excluded_groups: []    # Never auto-reboot these groups (e.g. [vps])
 system_update_autoremove_max: 20       # Skip autoremove with a warning above this many packages
 system_update_min_free_mb_root: 500    # Pre-flight free space on /
 system_update_min_free_mb_boot: 50     # Pre-flight free space on /boot, /boot/firmware
@@ -144,7 +144,7 @@ pihole_update_verify_domain: google.com    # Serial playbook: domain used to ver
 #### PiKVM Update Settings
 ```yaml
 pikvm_update_enabled: true                # Update PiKVM systems
-pikvm_update_reboot_after: false          # Reboot after update
+pikvm_update_reboot_after: true           # Reboot when pikvm-update requires it
 pikvm_update_reboot_timeout: 300          # Reboot timeout (seconds)
 pikvm_update_timeout: 600                 # Update timeout (seconds)
 pikvm_update_force_install_updater: false # Force install pikvm-os-updater
@@ -308,9 +308,9 @@ The inventory uses a **multi-dimensional structure** where hosts belong to multi
 ## Safety Features
 
 ### Reboot Protection
-- **Default**: No automatic reboots (`system_update_reboot_if_required: false`)
+- **Configured**: Automatic reboots when required (`system_update_reboot_if_required: true` in group_vars; the role default is `false`)
 - **Detection**: Debian/Ubuntu, RHEL (`needs-restarting`) and Arch (kernel modules check)
-- **Excluded groups**: Hosts in `system_update_reboot_excluded_groups` (default `vps`) are never auto-rebooted
+- **Excluded groups**: Hosts in `system_update_reboot_excluded_groups` (currently none) are never auto-rebooted
 - **Serial plays**: Pi-hole and K3s hosts update/reboot one at a time; K3s nodes are drained first
 - **Warning**: Notifies when reboot is needed but not automatic
 - **Override**: Can be enabled per-run or in configuration
